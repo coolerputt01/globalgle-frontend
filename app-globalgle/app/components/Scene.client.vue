@@ -12,27 +12,37 @@
   import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
   import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
   
-  async function decryptFile(url, key) {
-    const res = await fetch(url)
-    const encryptedBuffer = await res.arrayBuffer()
-    const keyMaterial = await crypto.subtle.importKey(
+  // Scene.client.vue – corrected decryption
+  async function decryptFile(url, password) {
+    // 1. fetch encrypted blob
+    const response = await fetch(url);
+    const encryptedData = await response.arrayBuffer();
+
+    // 2. extract IV (first 16 bytes) and ciphertext
+    const iv = new Uint8Array(encryptedData.slice(0, 16));
+    const data = encryptedData.slice(16);
+
+    // 3. derive AES key from password (same as decrypt.js)
+    const passwordBuffer = new TextEncoder().encode(password);
+    const hash = await crypto.subtle.digest('SHA-256', passwordBuffer);
+    const rawKey = hash.slice(0, 32); // AES‑256 needs 32 bytes
+
+    const cryptoKey = await crypto.subtle.importKey(
       'raw',
-      new TextEncoder().encode(key),
-      { name: 'PBKDF2' },
-      false,
-      ['deriveKey']
-    )
-    const cryptoKey = await crypto.subtle.deriveKey(
-      { name: 'PBKDF2', salt: new TextEncoder().encode('salt'), iterations: 100000, hash: 'SHA-256' },
-      keyMaterial,
-      { name: 'AES-GCM', length: 256 },
+      rawKey,
+      { name: 'AES-CBC' },
       false,
       ['decrypt']
-    )
-    const iv = encryptedBuffer.slice(0, 12)
-    const ciphertext = encryptedBuffer.slice(12)
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext)
-    return decrypted
+    );
+
+    // 4. decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-CBC', iv },
+      cryptoKey,
+      data
+    );
+
+    return decrypted;
   }
   
   const canvasDiv = ref(null)
@@ -43,7 +53,9 @@
   let headBone = null
   let screenLight = null
   let mouse = { x: 0, y: 0 }
-  const interpolation = { x: 0.1, y: 0.2 }
+  const interpolation = { x: 0.1, y: 0.2, zoom: 0.05 }
+
+let targetCameraZ = 24.7
   const scene = new THREE.Scene()
   const clock = new THREE.Clock()
   let camera = null
@@ -101,8 +113,8 @@
     canvasDiv.value.appendChild(renderer.domElement)
   
     // ── Camera ──────────────────────────────────────────────────────────────────
-    camera = new THREE.PerspectiveCamera(14.5, w / h, 0.1, 1000)
-    camera.position.set(0, 13.1, 24.7)
+    camera = new THREE.PerspectiveCamera(14.5, w/h, 0.1, 1000);
+    camera.position.set(0, 13.1, 24.7);
     camera.zoom = 1.1
     camera.updateProjectionMatrix()
   
@@ -131,15 +143,26 @@
     gltfLoader.setDRACOLoader(dracoLoader)
   
     try {
-      const decrypted = await decryptFile('/models/character.enc', 'MyCharacter12')
-      const blobUrl = URL.createObjectURL(new Blob([decrypted]))
+      const decrypted = await decryptFile('/models/character.enc', 'MyCharacter12');
+// --- diagnostic ---
+const magic = new Uint8Array(decrypted, 0, 4);
+console.log('First 4 bytes:', Array.from(magic).map(b => b.toString(16)).join(' '));
+// GLB magic should be '67 6C 54 46' (hex) which is 'glTF' in ASCII
+const magicString = String.fromCharCode(...magic);
+console.log('Magic string:', magicString);
+if (magicString !== 'glTF') {
+  console.error('Decryption failed – not a valid GLB file');
+}
+// Also check file size
+console.log('Decrypted size:', decrypted.byteLength);
+// -----------------
+const blobUrl = URL.createObjectURL(new Blob([decrypted]));
   
       const gltf = await new Promise((resolve, reject) => {
         gltfLoader.load(blobUrl, resolve, undefined, reject)
       })
   
       const character = gltf.scene
-      await renderer.compileAsync(character, camera, scene)
   
       character.traverse((child) => {
         if (child.isMesh) {
@@ -201,6 +224,7 @@
     }
     window.addEventListener('resize', onResize)
     cleanupFns.push(() => window.removeEventListener('resize', onResize))
+
   
     // ── Render loop ──────────────────────────────────────────────────────────────
     function animate() {
@@ -213,6 +237,7 @@
       const delta = clock.getDelta()
       if (mixer) mixer.update(delta)
       renderer.render(scene, camera)
+      console.log(w, h)
     }
     animate()
   })

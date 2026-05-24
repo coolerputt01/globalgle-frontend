@@ -702,11 +702,9 @@ html { scroll-behavior: auto; }
 /* ── CHANGE 1: Hero background image ──────────────────────────────────────── */
 .hero-bg-image {
   position: absolute;
-  inset: 0;
-  /* 🖼️  Replace the url() below with your actual image path            */
-  /* e.g. background-image: url('/images/hero-bg.jpg');                 */
+  inset: 0;                
   background-size: cover;
-  background-position: center top;
+  background-position: top;
   background-repeat: no-repeat;
   z-index: 0;
   /* Subtle Ken-Burns drift — feels alive without distracting */
@@ -1152,7 +1150,7 @@ export function initStars() {
   }
 
   // Generate stars once, reuse on redraw
-  const STAR_COUNT = 320
+  const STAR_COUNT = 500
   const stars = Array.from({ length: STAR_COUNT }, () => ({
     x:    Math.random(),
     y:    Math.random(),
