@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import Earth from '~/components/Earth.client.vue'
+import Scene from '~/components/Scene.client.vue'
 
 const threeEarth = ref(null)
 const cleanup = []
@@ -10,9 +11,6 @@ onMounted(async () => {
   const { ScrollTrigger } = await import('gsap/ScrollTrigger')
   gsap.registerPlugin(ScrollTrigger)
 
-  // ─── CHANGE 2: Stars canvas ───────────────────────────────────────────────
-  const stopStars = initStars()
-  if (stopStars) cleanup.push(stopStars)
 
   // ─── NAVBAR ────────────────────────────────────────────────────────────────
   let lastScroll = 0
@@ -36,25 +34,23 @@ onMounted(async () => {
     end: 'bottom top',
     scrub: 1,
     onUpdate: (self) => {
-      if (!threeEarth.value) return
-      const JOINED = 0.58
-      const p = self.progress
+  if (!threeEarth.value) return
+  const p = self.progress
 
-      if (threeEarth.value.setShatterProgress) {
-        threeEarth.value.setShatterProgress(p)
-      }
+  // fade out
+  const earthCanvas = document.querySelector('.three-canvas')
+  if (earthCanvas) earthCanvas.style.opacity = Math.max(0, 1 - p * 3)
 
-      if (threeEarth.value.setYOffset) {
-        const yTarget = p < JOINED ? -p * 3 : -(JOINED * 3)
-        threeEarth.value.setYOffset(yTarget)
-      }
+  // stop doing anything once faded
+  if (p > 0.35) return
 
-      // CHANGE 4: Fade hero content out as G section takes over
-      const heroContent = document.querySelector('.hero-content')
-      if (heroContent) {
-        gsap.set(heroContent, { opacity: 1 - p * 2.2 })
-      }
-    },
+  if (threeEarth.value.setScrollProgress) {
+    threeEarth.value.setScrollProgress(p)
+  }
+
+  const heroContent = document.querySelector('.hero-content')
+  if (heroContent) gsap.set(heroContent, { opacity: 1 - p * 2.2 })
+}
   })
 
   gsap.to('#hero-title', { opacity: 1, scale: 1, duration: 1.4, ease: 'power3.out', delay: 0.4 })
@@ -90,36 +86,64 @@ onMounted(async () => {
 
   document.getElementById('circle-text-svg').style.animation = 'spinCircle 22s linear infinite'
 
-  // ─── NUMBERS — CHANGE 3: animate from bottom-right → top-left ─────────────
-  const numberItems = gsap.utils.toArray('.number-item')
-  numberItems.forEach((el, i) => {
-    ScrollTrigger.create({
-      trigger: '#numbers-section',
-      start: 'top 80%',
-      end: 'top 20%',
-      scrub: 1,
-      onUpdate(self) {
-        const itemStart = i / (numberItems.length + 2)
-        const itemEnd = itemStart + 0.35
-        const p = Math.min(Math.max((self.progress - itemStart) / (itemEnd - itemStart), 0), 1)
-        // Start from bottom-right, move to top-left
-        gsap.set(el, { opacity: p, x: (1 - p) * 120, y: (1 - p) * 80 })
-      },
-    })
-  })
+// ─── NUMBERS ───────────────────────────────────────────────────────────────
+const numberItems = gsap.utils.toArray('.number-item')
 
-  // Number layer parallax drift: bottom-right origin
-  gsap.utils.toArray('.number-layer').forEach((el, i) => {
-    const driftX = i % 2 === 0 ? -200 : 200
-    const driftY = i % 2 === 0 ? -50 : 50
-    ScrollTrigger.create({
-      trigger: '#numbers-section',
-      start: 'top bottom',
-      end: 'bottom top',
-      scrub: 1,
-      onUpdate(self) { gsap.set(el, { x: driftX * self.progress, y: driftY * self.progress }) },
-    })
+numberItems.forEach((el, i) => {
+  ScrollTrigger.create({
+    trigger: '#numbers-section',
+    start: 'top 80%',
+    end: 'bottom 20%',
+    scrub: 1.5,
+    onUpdate(self) {
+      const p = self.progress
+      const stagger = 0.07
+      const duration = 0.28
+
+      const itemStart = i * stagger
+      const itemPeak  = itemStart + duration
+      const itemEnd   = itemPeak + duration
+
+      let local = 0
+      if (p < itemStart) {
+        local = 0
+      } else if (p < itemPeak) {
+        local = (p - itemStart) / duration
+      } else if (p < itemEnd) {
+        local = 1 - (p - itemPeak) / duration
+      }
+
+      if (p < itemPeak) {
+        // ENTERING: from bottom-right diagonal
+        gsap.set(el, {
+          opacity: local,
+          x: (1 - local) * 200,   // from right
+          y: (1 - local) * 200,   // from bottom
+        })
+      } else {
+        // EXITING: to top-left diagonal
+        gsap.set(el, {
+          opacity: local,
+          x: -(1 - local) * 200,  // to left
+          y: -(1 - local) * 200,  // to top
+        })
+      }
+    },
   })
+})
+
+// Number layer parallax — gentle drift
+gsap.utils.toArray('.number-layer').forEach((el, i) => {
+  ScrollTrigger.create({
+    trigger: '#numbers-section',
+    start: 'top bottom',
+    end: 'bottom top',
+    scrub: 1,
+    onUpdate(self) {
+      gsap.set(el, { x: (i % 2 === 0 ? -1 : 1) * 30 * self.progress })
+    },
+  })
+})
 
   // ─── SPIRAL ────────────────────────────────────────────────────────────────
   ;(function () {
@@ -128,23 +152,29 @@ onMounted(async () => {
     const dotEl = document.getElementById('spiral-dot')
 
     function buildSpiralPath() {
-      const W = svg.clientWidth || window.innerWidth
-      const H = svg.clientHeight || document.getElementById('spiral-section').offsetHeight
-      const startX = W * 0.85, startY = H * 0.05
-      const points = []
-      for (let i = 0; i <= 200; i++) {
-        const t = i / 200
-        const angle = -Math.PI + t * Math.PI * 8
-        const radius = 60 + 100 * (1 - t * 0.5)
-        points.push([
-          W * (0.35 + 0.1 * Math.sin(t * Math.PI)) + radius * Math.cos(angle),
-          H * (0.08 + t * 0.85) + radius * Math.sin(angle),
-        ])
-      }
-      points[0] = [startX, startY]
-      pathEl.setAttribute('d', 'M ' + startX + ' ' + startY + points.slice(1).map(p => ' L ' + p[0] + ' ' + p[1]).join(''))
-      return pathEl.getTotalLength()
-    }
+  const W = svg.clientWidth || window.innerWidth
+  const H = svg.clientHeight || document.getElementById('spiral-section').offsetHeight
+  
+  // Start from top-left, go straight right then spiral downward
+  const startX = W * 0.15, startY = H * 0.08
+  const points = []
+  for (let i = 0; i <= 200; i++) {
+    const t = i / 200
+    const angle = Math.PI + t * Math.PI * 8 // start going right, spiral down
+    const radius = 60 + 100 * (1 - t * 0.5)
+    points.push([
+      W * (0.5 + 0.1 * Math.cos(t * Math.PI * 0.5)) + radius * Math.cos(angle),
+      H * (0.05 + t * 0.88) + radius * Math.sin(angle),  // moves downward
+    ])
+  }
+  points[0] = [startX, startY]
+  // First few points go straight right before spiraling
+  points[1] = [startX + W * 0.15, startY]
+  points[2] = [startX + W * 0.28, startY + H * 0.03]
+  
+  pathEl.setAttribute('d', 'M ' + startX + ' ' + startY + points.slice(1).map(p => ' L ' + p[0] + ' ' + p[1]).join(''))
+  return pathEl.getTotalLength()
+}
 
     let len = buildSpiralPath()
     pathEl.style.strokeDasharray = len
@@ -196,10 +226,10 @@ onMounted(async () => {
   // ─── RUBIK ─────────────────────────────────────────────────────────────────
   ;(function () {
     const canvas = document.getElementById('rubik-canvas')
-    const ctx = canvas.getContext('2d')
-    canvas.width = 420
-    canvas.height = 420
-    let rotX = 0.42, autoRot = 0, rafId
+  const ctx = canvas.getContext('2d')
+  canvas.width = 420
+  canvas.height = 420
+  let rotX = 0.42, autoRot = 0, rafId
 
     const FACE_COLORS = {
       front:  ['#7c3aed','#3b82f6','#00ff88','#7c3aed','#00ff88','#3b82f6','#00ff88','#3b82f6','#7c3aed'],
@@ -295,72 +325,88 @@ onMounted(async () => {
       faces.sort((a,b)=>a.z-b.z)
       faces.forEach(f => { drawFace(f.pts, FACE_COLORS[f.key]) })
     }
-
     function loop(){autoRot+=0.030; rotX=0.42+Math.sin(Date.now()/2800)*0.22; drawCube(); rafId=requestAnimationFrame(loop)}
-    loop()
-    cleanup.push(()=>cancelAnimationFrame(rafId))
+  loop()
+  cleanup.push(()=>cancelAnimationFrame(rafId))
 
-    const section = document.getElementById('rubik-section')
-    const sectionW = () => section.offsetWidth
+  const section = document.getElementById('rubik-section')
+  const sectionW = () => section.offsetWidth
 
-    ScrollTrigger.create({
-      trigger: '#rubik-section',
-      start: 'top bottom',
-      end: 'bottom top',
-      scrub: 0,
-      onUpdate(self) {
-        const p = self.progress
-        const W = sectionW()
-        const center = W / 2 - 210
-        const right  = W + 60
-        const left   = -280
-        const x = p < 0.5
-          ? right  + (center - right)  * (p * 2)
-          : center + (left   - center) * ((p - 0.5) * 2)
-        canvas.style.left = x + 'px'
-      },
-    })
+  // Single trigger for cube movement
+ScrollTrigger.create({
+  trigger: '#rubik-section',
+  start: 'top bottom',
+  end: 'bottom top',
+  scrub: 0,
+  onUpdate(self) {
+    const p = self.progress
+    const W = sectionW()
+    const center = W / 2 - 210
+    const right  = W + 60
+    const left   = -50                // was -280 – stays on screen
+    const x = p < 0.5
+      ? right + (center - right) * (p * 2)
+      : center + (left - center) * ((p - 0.5) * 2)
+    canvas.style.left = x + 'px'
+  },
+})
 
-    ScrollTrigger.create({
-      trigger: '#rubik-section',
-      start: 'top 90%',
-      end: 'top 40%',
-      scrub: 1,
-      onUpdate(self) { gsap.set('#rt-left', { opacity: self.progress, x: (1 - self.progress) * -50 }) },
-    })
+// 2. Fade out the cube during the last part of its journey
+ScrollTrigger.create({
+  trigger: '#rubik-section',
+  start: '60% bottom',
+  end: 'bottom top',
+  scrub: 1,
+  onUpdate(self) {
+    // Starts fading when scroll is beyond 60% of the section
+    const p = Math.min(1, Math.max(0, (self.progress - 0.6) / 0.4))
+    canvas.style.opacity = 1 - p
+  },
+})
 
-    ScrollTrigger.create({
-      trigger: '#rubik-section',
-      start: 'center 60%',
-      end: 'bottom 60%',
-      scrub: 1,
-      onUpdate(self) { gsap.set('#rt-right', { opacity: self.progress, x: (1 - self.progress) * 60 }) },
-    })
+ScrollTrigger.create({
+  trigger: '#rubik-section',
+  start: '33% 60%',
+  end: '40% 40%',
+  scrub: 1,
+  onUpdate(self) {
+    gsap.set('#rt-left', { opacity: 1 - self.progress })
+  },
+})
+
+// Text 2 — right side, cube at center
+ScrollTrigger.create({
+  trigger: '#rubik-section',
+  start: '35% 60%',
+  end: '50% 40%',
+  scrub: 1,
+  onUpdate(self) {
+    gsap.set('#rt-right', { opacity: self.progress, x: (1 - self.progress) * 60 })
+  },
+})
+
+// Text 2 — fade out as cube exits
+ScrollTrigger.create({
+  trigger: '#rubik-section',
+  start: '60% 60%',
+  end: '70% 40%',
+  scrub: 1,
+  onUpdate(self) {
+    gsap.set('#rt-right', { opacity: 1 - self.progress })
+  },
+})
+
+// Text 3 — left side, cube exiting
+ScrollTrigger.create({
+  trigger: '#rubik-section',
+  start: '65% 60%',
+  end: '85% 40%',
+  scrub: 1,
+  onUpdate(self) {
+    gsap.set('#rt-bottom', { opacity: self.progress, x: (1 - self.progress) * 80 })
+  },
+})
   })()
-
-  // ─── EXPERIENCE ────────────────────────────────────────────────────────────
-  ;['#exp-label','#exp-head','#exp-cta'].forEach((sel, i) => {
-    ScrollTrigger.create({
-      trigger: '#experience-section',
-      start: `top ${80 - i * 5}%`,
-      end: `top ${30 - i * 5}%`,
-      scrub: 1,
-      onUpdate(self) { gsap.set(sel, { opacity: self.progress, y: (1 - self.progress) * 24 }) },
-    })
-  })
-  gsap.utils.toArray('.exp-stat').forEach((el, i) => {
-    ScrollTrigger.create({
-      trigger: '.exp-stats',
-      start: 'top 85%',
-      end: 'top 40%',
-      scrub: 1,
-      onUpdate(self) {
-        const staggerStart = i * 0.18
-        const p = Math.min(Math.max((self.progress - staggerStart) / 0.5, 0), 1)
-        gsap.set(el, { opacity: p, y: (1 - p) * 30 })
-      },
-    })
-  })
 
   // ─── FAQ ───────────────────────────────────────────────────────────────────
   ScrollTrigger.create({
@@ -457,9 +503,6 @@ onUnmounted(() => {
     <!-- ── NAVBAR ─────────────────────────────────────────────────────────── -->
     <NavBar/>
 
-    <!-- ── CHANGE 2: CSS green stars canvas — sits fixed behind everything ── -->
-    <canvas id="stars-canvas" aria-hidden="true"></canvas>
-
     <!-- HERO: CHANGE 1 — background image placeholder + taller section -->
     <section id="hero">
       <!-- 🖼️ ADD YOUR IMAGE PATH HERE -->
@@ -474,7 +517,7 @@ onUnmounted(() => {
           <button class="btn-glass primary">Get Started</button>
           <button class="btn-glass">Login</button>
         </div>
-        <h1 id="hero-title">GlobalGle</h1>
+        <h1 id="hero-title">GlobalGLE</h1>
       </div>
     </section>
 
@@ -551,22 +594,29 @@ onUnmounted(() => {
 
     <!-- RUBIK -->
     <section id="rubik-section">
-      <div class="rubik-text-left" id="rt-left">
-        <h3>Move capital across borders without the friction.</h3>
-        <p>Real-time settlement rails connecting institutions across 120+ countries seamlessly.</p>
-      </div>
-      <canvas id="rubik-canvas"></canvas>
-      <div class="rubik-text-right" id="rt-right">
-        <h3>Compliance built in, not bolted on.</h3>
-        <p>Adaptive regulatory layers that evolve with global standards, automatically.</p>
-      </div>
-    </section>
+  <div class="rubik-text-left" id="rt-left">
+    <h3>Move capital across borders without the friction.</h3>
+    <p>Real-time settlement rails connecting institutions across 120+ countries seamlessly.</p>
+  </div>
+  <div class="rubik-wrap">
+  <canvas id="rubik-canvas"></canvas>
+</div>
+  <div class="rubik-text-right" id="rt-right">
+    <h3>Compliance built in, not bolted on.</h3>
+    <p>Adaptive regulatory layers that evolve with global standards, automatically.</p>
+  </div>
+  <div class="rubik-text-bottom" id="rt-bottom">
+    <h3>Transparency at every layer.</h3>
+    <p>Full auditability and real-time reporting built into every transaction we process.</p>
+  </div>
+</section>
 
-    <div class="scene-wrapper">
+<div class="scene-wrapper">
       <ClientOnly>
         <Scene />
       </ClientOnly>
     </div>
+
 
     <!-- FAQ -->
     <section id="faq-section">
@@ -673,10 +723,14 @@ html { scroll-behavior: auto; }
   background: #000;
   color: #fff;
   font-family: 'Urbanist', sans-serif;
-  overflow-x: hidden;
+  overflow-x:hidden;
 }
 
-:global(@keyframes spinCircle) {
+@keyframes starDrift {
+  from { background-position: 0 0; }
+  to { background-position: 512px 512px; }
+}
+@keyframes spinCircle {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
@@ -695,6 +749,27 @@ html { scroll-behavior: auto; }
   /* The canvas is drawn via JS below */
 }
 
+.rubik-text-bottom {
+  position: absolute;
+  bottom: 12vh;
+  left: 8vw;
+  max-width: 280px;
+  opacity: 0;
+  z-index: 6;
+}
+.rubik-text-bottom h3 {
+  font-family: 'Urbanist', sans-serif;
+  font-size: clamp(1.05rem, 2vw, 1.6rem);
+  font-weight: 700;
+  line-height: 1.35;
+}
+.rubik-text-bottom p {
+  margin-top: 0.75rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 /* Inline script to generate the stars — placed in a global style block
    so it runs once the DOM is ready. We use a Vue trick: the canvas
    is populated with a tiny inline script tag rendered via v-once. */
@@ -705,6 +780,7 @@ html { scroll-behavior: auto; }
   inset: 0;                
   background-size: cover;
   background-position: top;
+  image-rendering: pixelated;
   background-repeat: no-repeat;
   z-index: 0;
   /* Subtle Ken-Burns drift — feels alive without distracting */
@@ -747,7 +823,7 @@ html { scroll-behavior: auto; }
   position: sticky;
   top: 20vh;
   bottom: 215vh;
-  z-index: 10;
+  z-index: 4;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -820,13 +896,11 @@ html { scroll-behavior: auto; }
   will-change: transform, opacity;
 }
 
-/* ── NUMBERS: CHANGE 3 — screen/box container ────────────────────────────── */
 #numbers-section {
   width: 100vw;
-  min-height: 100vh;
+  min-height: 120vh;  /* taller so scroll animation has room */
   background: #000;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
@@ -835,25 +909,44 @@ html { scroll-behavior: auto; }
   z-index: 2;
 }
 
-/* The "screen" box */
 .numbers-screen {
   position: relative;
-  width: 94vw;
-  max-width: 1400px;
-  min-height: 70vh;
-  border-radius: 20px;
+  width: min(860px, 90vw);
+  min-height: 480px;
+  border-radius: 16px;
   border: 1px solid rgba(0, 255, 136, 0.18);
   background: rgba(0, 0, 0, 0.82);
   box-shadow:
     0 0 0 1px rgba(0, 255, 136, 0.06),
-    0 0 60px rgba(0, 255, 136, 0.06),
-    inset 0 0 80px rgba(0, 0, 0, 0.6);
-  padding: 4rem 3rem 3rem;
+    0 0 40px rgba(0, 255, 136, 0.06),
+    inset 0 0 60px rgba(0, 0, 0, 0.6);
+  padding: 3.5rem 2.5rem 2.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  overflow: hidden;
+  gap: 1.2rem;
+  overflow: hidden;  /* clips items outside the box */
 }
+
+.number-layer {
+  display: flex;
+  gap: 2.5rem;
+  white-space: nowrap;
+}
+
+.number-item {
+  font-family: 'Urbanist', sans-serif;
+  font-weight: 800;
+  color: rgba(0, 255, 136, 0.6);
+  line-height: 1;
+  user-select: none;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.nl-top .number-item { font-size: clamp(2rem, 5vw, 4.5rem); }
+.nl-mid .number-item { font-size: clamp(3.5rem, 9vw, 8rem); -webkit-text-stroke: 2px rgba(0,255,136,0.35); color: transparent !important; }
+.nl-bot .number-item { font-size: clamp(1.8rem, 4vw, 3.5rem); }
 
 /* Screen top chrome — three dots like a terminal window */
 .screen-chrome {
@@ -931,12 +1024,27 @@ html { scroll-behavior: auto; }
 
 /* ── RUBIK ───────────────────────────────────────────────────────────────── */
 #rubik-section {
-  width: 100vw; min-height: 180vh; background: #000;
-  position: relative; overflow: hidden; z-index: 2;
+  width: 100vw;
+  min-height: 200vh;  /* was 180vh — needs more room for 3 text stops */
+  background: #000;
+  position: relative;
+  overflow: hidden;
+  z-index: 2;
 }
+.rubik-wrap {
+  position: sticky;
+  top: calc(50vh - 210px);
+  height: 420px;
+  z-index: 5;
+  pointer-events: none;
+}
+
 #rubik-canvas {
-  position: sticky; top: calc(50vh - 210px);
-  width: 420px; height: 420px; z-index: 5; display: block;
+  /* remove position/top/left/z-index — inherited from wrap */
+  position: absolute;
+  left: 0;
+  width: 420px;
+  height: 420px;
 }
 .rubik-text-left {
   position: absolute; top: 10vh; left: 8vw; max-width: 280px; opacity: 0; z-index: 6;
@@ -1124,95 +1232,3 @@ html { scroll-behavior: auto; }
   .numbers-screen { width: 98vw; padding: 3rem 1.2rem 2rem; }
 }
 </style>
-
-<!-- ── CHANGE 2: Green stars — drawn once via inline script ────────────────
-     Placed outside <style scoped> so it runs in the browser context.
-     Vue ignores <script> tags that aren't setup/options blocks when they
-     appear inside the SFC outside the template, so we embed this as a
-     mounted side-effect instead — see onMounted above where we call
-     initStars(). The actual canvas draw code lives here as a composable
-     pattern so it's self-contained inside the SFC.
--->
-
-<script>
-// Stars initialiser — called from onMounted via the ref below.
-// Separated into a plain <script> block so it can be tree-shaken
-// and doesn't pollute the setup() reactive scope.
-export function initStars() {
-  const canvas = document.getElementById('stars-canvas')
-  if (!canvas) return
-  const ctx = canvas.getContext('2d')
-
-  function resize() {
-    canvas.width  = window.innerWidth
-    canvas.height = window.innerHeight
-    draw()
-  }
-
-  // Generate stars once, reuse on redraw
-  const STAR_COUNT = 500
-  const stars = Array.from({ length: STAR_COUNT }, () => ({
-    x:    Math.random(),
-    y:    Math.random(),
-    r:    Math.random() * 1.1 + 0.3,       // 0.3 – 1.4 px
-    a:    Math.random() * 0.55 + 0.15,     // base opacity
-    twinkleSpeed: Math.random() * 0.012 + 0.004,
-    twinkleOffset: Math.random() * Math.PI * 2,
-    // A small fraction are bright green, rest are white-ish
-    green: Math.random() < 0.28,
-  }))
-
-  let frame = 0
-  let raf
-
-  function draw() {
-    const W = canvas.width, H = canvas.height
-    ctx.clearRect(0, 0, W, H)
-
-    const t = frame * 0.016 // ~time in seconds at 60fps
-
-    for (const s of stars) {
-      // Gentle twinkle via sin wave
-      const twinkle = Math.sin(t * s.twinkleSpeed * 60 + s.twinkleOffset)
-      const alpha = Math.max(0.05, s.a + twinkle * 0.18)
-
-      ctx.beginPath()
-      ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
-
-      if (s.green) {
-        // Tiny green star — some with a soft glow
-        if (s.r > 0.85) {
-          // Glow for slightly bigger ones
-          const grd = ctx.createRadialGradient(
-            s.x * W, s.y * H, 0,
-            s.x * W, s.y * H, s.r * 4.5
-          )
-          grd.addColorStop(0, `rgba(0,255,136,${alpha})`)
-          grd.addColorStop(1, 'rgba(0,255,136,0)')
-          ctx.fillStyle = grd
-          ctx.arc(s.x * W, s.y * H, s.r * 4.5, 0, Math.PI * 2)
-          ctx.fill()
-          ctx.beginPath()
-          ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2)
-        }
-        ctx.fillStyle = `rgba(0,255,136,${alpha})`
-      } else {
-        ctx.fillStyle = `rgba(255,255,255,${alpha * 0.7})`
-      }
-
-      ctx.fill()
-    }
-
-    frame++
-    raf = requestAnimationFrame(draw)
-  }
-
-  resize()
-  window.addEventListener('resize', resize)
-
-  return () => {
-    cancelAnimationFrame(raf)
-    window.removeEventListener('resize', resize)
-  }
-}
-</script>
