@@ -61,15 +61,15 @@ let targetCameraZ = 24.7
   let camera = null
   
   function setLighting(scene) {
-    const ambient = new THREE.AmbientLight(0xffffff, 0)
+    const ambient = new THREE.AmbientLight(0x00FF88, 0)
     scene.add(ambient)
-    const key = new THREE.DirectionalLight(0xffffff, 0)
+    const key = new THREE.DirectionalLight(0x00FF88, 0)
     key.position.set(5, 5, 5)
     scene.add(key)
-    const fill = new THREE.DirectionalLight(0x8888ff, 0)
+    const fill = new THREE.DirectionalLight(0x00FF88, 0)
     fill.position.set(-5, 0, 3)
     scene.add(fill)
-    const pointLight = new THREE.PointLight(0x4488ff, 0, 10)
+    const pointLight = new THREE.PointLight(0x00FF88, 0, 10)
     scene.add(pointLight)
   
     function turnOnLights() {
@@ -113,9 +113,9 @@ let targetCameraZ = 24.7
     canvasDiv.value.appendChild(renderer.domElement)
   
     // ── Camera ──────────────────────────────────────────────────────────────────
-    camera = new THREE.PerspectiveCamera(14.5, w/h, 0.1, 1000);
-    camera.position.set(0, 13.1, 24.7);
-    camera.zoom = 1.1
+    camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000);
+    camera.position.set(2, 13.5, 27);
+    camera.zoom = 1.4
     camera.updateProjectionMatrix()
   
     // ── Lighting ─────────────────────────────────────────────────────────────────
@@ -187,6 +187,7 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
       if (footL) footL.position.y = 3.36
   
       scene.add(character)
+      character.rotation.y = Math.PI * 0.25
       headBone    = character.getObjectByName('spine006') || null
       screenLight = character.getObjectByName('screenlight') || null
   
