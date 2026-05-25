@@ -634,7 +634,7 @@ onUnmounted(() => {
     <!-- BIG TEXT -->
     <section id="bigtext-section">
       <h2 id="big-header">GLOBAL GLE is a GLOBAL BUSINESS PARTNER AGENCY</h2>
-      <p class="desc">From emerging markets to tier-one banks, our rails handle the complexity so you never have to.</p>
+      <p class="desc">Powering advanced Crypto Funding OTC, and Caller ID  infrastructure for ambitious teams worldwide.</p>
     </section>
 
     <!-- RUBIK -->
