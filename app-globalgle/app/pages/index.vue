@@ -524,7 +524,7 @@ onUnmounted(() => {
     <!-- HERO: CHANGE 1 — background image placeholder + taller section -->
     <section id="hero">
       <!-- 🖼️ ADD YOUR IMAGE PATH HERE -->
-      <div class="hero-bg-image" style="background-image: url('/space.avif')"></div>
+      <div class="hero-bg-image" style="background-image: url('/bg_image.PNG')"></div>
       <div class="hero-bg-overlay"></div>
 
       <ClientOnly>
