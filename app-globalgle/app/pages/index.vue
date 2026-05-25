@@ -351,39 +351,16 @@ ScrollTrigger.create({
   end: 'bottom top',
   scrub: 1,
   onUpdate(self) {
-  const p = self.progress
-  const W = sectionW()
-  const center = (W - 420) / 2
-  const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
-
-  // 3-phase path: drop down center → swerve right → swerve left → exit right
-  let x, y
-
-  if (p < 0.25) {
-    // Phase 1: fall straight down from above into center
-    const t = ease(p / 0.25)
-    x = center
-    y = -320 + t * 320
-  } else if (p < 0.5) {
-    // Phase 2: swerve right
-    const t = ease((p - 0.25) / 0.25)
-    x = center + t * (W * 0.3)
-    y = 0 + t * 40
-  } else if (p < 0.75) {
-    // Phase 3: swerve back left, past center
-    const t = ease((p - 0.5) / 0.25)
-    x = center + W * 0.3 - t * (W * 0.55)   // swings left past center
-    y = 40 + t * 40
-  } else {
-    // Phase 4: exit right
-    const t = ease((p - 0.75) / 0.25)
-    x = center - W * 0.25 + t * (W * 0.8 + center - center + W * 0.25 + 60)
-    y = 80 + t * 20
-  }
-
-  canvas.style.left = x + 'px'
-  canvas.style.top  = y + 'px'
-},
+    const p = self.progress
+    const W = sectionW()
+    const center = (W - 420) / 2
+    const amplitude = (W * 0.28) * (1 - p * 0.8)
+    const sineX = Math.sin(p * Math.PI * 2) * amplitude;
+    const x = center + sineX
+    const y = -320 + p * 400
+    canvas.style.left = x + 'px'
+    canvas.style.top  = y + 'px'
+  },
 })
 
 // 2. Fade out the cube during the last part of its journey
@@ -657,10 +634,15 @@ onUnmounted(() => {
 </section>
 
 <div class="scene-wrapper">
-      <ClientOnly>
-        <Scene />
-      </ClientOnly>
-    </div>
+  <div class="scene-gle-bg" aria-hidden="true">
+    <span>GLE</span>
+    <span>GLE</span>
+    <span>GLE</span>
+  </div>
+  <ClientOnly>
+    <Scene />
+  </ClientOnly>
+</div>
 
 
     <!-- FAQ -->
@@ -689,16 +671,6 @@ onUnmounted(() => {
           <div class="faq-a">Pricing is volume-based with transparent per-transaction fees. We offer custom enterprise pricing for institutions clearing above $10M monthly. No hidden charges or subscription locks.</div>
         </div>
       </div>
-    </section>
-
-    <!-- GLE + W -->
-    <section id="gle-section">
-      <div class="gle-text-wrap">
-        <span class="gle-word">GLE</span>
-        <span class="gle-word">GLE</span>
-        <span class="gle-word">GLE</span>
-      </div>
-      <div id="w-overlay">W</div>
     </section>
 
     <!-- FOOTER -->
@@ -1131,17 +1103,18 @@ html { scroll-behavior: auto; }
 .nl-bot .number-item { font-size: clamp(2.5rem, 6vw, 5rem); }
 
 /* ── SPIRAL ──────────────────────────────────────────────────────────────── */
-#spiral-section { width: 100vw; min-height: 140vh;margin-bottom: -30vh; background: #000; position: relative; padding: 4rem 0; z-index: 10; }
+#spiral-section { width: 100vw; min-height: 100vh; background: #000; position: relative; padding: 4rem 0; z-index: 10; }
 #spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; overflow: visible; }
 .spiral-content { position: relative; z-index: 2; max-width: 600px; margin: 0 auto; padding-top: 6rem; display: flex; flex-direction: column; gap: 4rem;}
 .spiral-para { opacity: 0; }
-.spiral-para p { color: #4b5563; font-size: 1.1rem; line-height: 1.8; font-weight: 300;margin: 0 auto; }
+.spiral-para p { color: #fff; font-size: 1.2rem; line-height: 1.8; font-weight: 300;margin: 0 auto;text-align:center;width: 100%; }
 
 /* ── BIG TEXT ────────────────────────────────────────────────────────────── */
 #bigtext-section {
   width: 100vw; min-height: 80vh; background: #000;
   display: flex; flex-direction: column; justify-content: center;
   padding: 6rem 10vw; position: relative; z-index: 2;
+  margin-top: 5vh;
 }
 #bigtext-section h2 {
   font-family: 'Urbanist', sans-serif; font-size: clamp(2rem, 6vw, 4rem);
@@ -1184,11 +1157,19 @@ html { scroll-behavior: auto; }
 }
 .rubik-text-left h3, .rubik-text-right h3 {
   font-family: 'Urbanist', sans-serif;
-  font-size: clamp(1.05rem, 2vw, 1.6rem); font-weight: 700; line-height: 1.35;
+  font-size: clamp(1.2rem, 2vw, 1.6rem); font-weight: 700; line-height: 1.35;
+  text-align:left;
+  width: 120%;
 }
+
 .rubik-text-left p, .rubik-text-right p {
   margin-top: 0.75rem; color: #6b7280; font-size: 0.9rem; line-height: 1.6;
 }
+ .rubik-text-right h3{
+text-align: center;
+ } .rubik-text-right p {
+  text-align: right;
+ }
 
 /* ── EXPERIENCE ──────────────────────────────────────────────────────────── */
 #experience-section {
@@ -1213,7 +1194,7 @@ html { scroll-behavior: auto; }
 /* ── SCENE WRAPPER ───────────────────────────────────────────────────────── */
 .scene-wrapper {
   width: 100vw;
-  height: 100vh;
+  height: 130vh;
   position: relative;
   z-index: 2;
   background: #000;
@@ -1221,7 +1202,7 @@ html { scroll-behavior: auto; }
 }
 
 /* ── FAQ ─────────────────────────────────────────────────────────────────── */
-#faq-section { width: 100vw; min-height: 80vh; background: #000; padding: 6rem 10vw; position: relative; z-index: 2; }
+#faq-section { width: 100vw; min-height: 80vh; background: #000; padding: 6rem 10vw; position: relative; z-index: 2; margin-bottom: 20vh;}
 .faq-label { font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: #00ff88; opacity: 0; }
 .faq-header { font-family: 'Urbanist', sans-serif; font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; margin: 1rem 0 3rem; opacity: 0; max-width: 700px; }
 .faq-item { border-top: 1px solid #1a1a1a; padding: 1.5rem 0; opacity: 0; }
@@ -1360,5 +1341,31 @@ html { scroll-behavior: auto; }
   .exp-stats { gap: 2rem; }
   .rubik-text-left, .rubik-text-right { display: none; }
   .numbers-screen { width: 98vw; padding: 3rem 1.2rem 2rem; }
+}
+.scene-gle-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 4rem);
+  z-index: 0;
+  pointer-events: none;
+}
+.scene-gle-bg span {
+  font-family: 'Urbanist', sans-serif;
+  font-size: clamp(4rem, 12vw, 11rem);
+  font-weight: 800;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(0, 255, 136, 0.15);
+  letter-spacing: 0.05em;
+  animation: gleFloat 2s ease-in-out infinite alternate;
+}
+.scene-gle-bg span:nth-child(2) { animation-delay: 0.2s; }
+.scene-gle-bg span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes gleFloat {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-28px); }
 }
 </style>
