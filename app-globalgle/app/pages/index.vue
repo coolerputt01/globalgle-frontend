@@ -606,7 +606,7 @@ onUnmounted(() => {
 
     <!-- BIG TEXT -->
     <section id="bigtext-section">
-      <h2 id="big-header">The infrastructure your global ambitions have always deserved — finally here.</h2>
+      <h2 id="big-header">GLOBAL GLE is a GLOBAL BUSINESS PARTNER AGENCY</h2>
       <p class="desc">From emerging markets to tier-one banks, our rails handle the complexity so you never have to.</p>
     </section>
 
@@ -1037,9 +1037,9 @@ html { scroll-behavior: auto; }
 /* ── SPIRAL ──────────────────────────────────────────────────────────────── */
 #spiral-section { width: 100vw; min-height: 160vh; background: #000; position: relative; padding: 4rem 0; z-index: 2; }
 #spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; overflow: visible; }
-.spiral-content { position: relative; z-index: 2; max-width: 600px; margin-left: 12vw; padding-top: 6rem; display: flex; flex-direction: column; gap: 4rem; }
+.spiral-content { position: relative; z-index: 2; max-width: 600px; margin-left: 12vw; padding-top: 6rem; display: flex; flex-direction: column; gap: 4rem;}
 .spiral-para { opacity: 0; }
-.spiral-para p { color: #4b5563; font-size: 1.1rem; line-height: 1.8; font-weight: 300; }
+.spiral-para p { color: #4b5563; font-size: 1.1rem; line-height: 1.8; font-weight: 300;margin: 0 auto; }
 
 /* ── BIG TEXT ────────────────────────────────────────────────────────────── */
 #bigtext-section {
@@ -1048,8 +1048,9 @@ html { scroll-behavior: auto; }
   padding: 6rem 10vw; position: relative; z-index: 2;
 }
 #bigtext-section h2 {
-  font-family: 'Urbanist', sans-serif; font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-family: 'Urbanist', sans-serif; font-size: clamp(1.5rem, 6vw, 3.5rem);
   font-weight: 800; line-height: 1.15; color: #fff; opacity: 0; max-width: 900px;
+  text-align: center;
 }
 #bigtext-section .desc {
   margin-top: 2rem; font-size: 1.15rem; color: #6b7280; opacity: 0; max-width: 700px;
@@ -1066,7 +1067,7 @@ html { scroll-behavior: auto; }
 }
 .rubik-wrap {
   position: sticky;
-  top: calc(10vh - 150px);
+  top: 0;
   height: 420px;
   z-index: 5;
   pointer-events: none;
