@@ -811,7 +811,7 @@ html { scroll-behavior: auto; }
 .hero-bg-image {
   position: absolute;
   inset: 0;                
-  background-size: cover;
+  background-size: fit;
   background-position: top;
   image-rendering: pixelated;
   background-repeat: no-repeat;
@@ -1066,7 +1066,7 @@ html { scroll-behavior: auto; }
 }
 .rubik-wrap {
   position: sticky;
-  top: calc(50vh - 210px);
+  top: calc(10vh - 150px);
   height: 420px;
   z-index: 5;
   pointer-events: none;
