@@ -45,7 +45,7 @@ onMounted(() => {
   scene.add(earthMesh)
 
   // Load texture onto the sphere
-  new THREE.TextureLoader().load('/texture.jpg', (texture) => {
+  new THREE.TextureLoader().load('/earth-light.jpg', (texture) => {
     mat.map = texture
     mat.color.set(0xffffff)
     mat.needsUpdate = true

@@ -6,10 +6,13 @@ import Scene from '~/components/Scene.client.vue'
 const threeEarth = ref(null)
 const cleanup = []
 
+
 onMounted(async () => {
   const { gsap } = await import('gsap')
   const { ScrollTrigger } = await import('gsap/ScrollTrigger')
   gsap.registerPlugin(ScrollTrigger)
+
+  
 
 
   // ─── NAVBAR ────────────────────────────────────────────────────────────────
@@ -39,7 +42,12 @@ onMounted(async () => {
 
   // fade out
   const earthCanvas = document.querySelector('.three-canvas')
-  if (earthCanvas) earthCanvas.style.opacity = Math.max(0, 1 - p * 3)
+  if (earthCanvas) {
+    const op = Math.max(0, 1 - p * 3)
+    earthCanvas.style.opacity = op
+    earthCanvas.style.visibility = op === 0 ? 'hidden' : 'visible'
+    earthCanvas.style.pointerEvents = op === 0 ? 'none' : 'auto'
+  }
 
   // stop doing anything once faded
   if (p > 0.35) return
@@ -311,7 +319,7 @@ gsap.utils.toArray('.number-layer').forEach((el, i) => {
     function drawCube() {
       ctx.clearRect(0,0,420,420)
       const mat=mul(rx(rotX),ry(autoRot))
-      const ox=210,oy=210,sc=88,sz=1
+      const ox=210,oy=210,sc=130,sz=0.72
       const verts=[[-sz,-sz,-sz],[sz,-sz,-sz],[sz,sz,-sz],[-sz,sz,-sz],[-sz,-sz,sz],[sz,-sz,sz],[sz,sz,sz],[-sz,sz,sz]]
       const p=verts.map(v=>proj(v[0],v[1],v[2],mat,ox,oy,sc))
       const faces=[
@@ -343,7 +351,7 @@ ScrollTrigger.create({
     const W = sectionW()
     const center = W / 2 - 210
     const right  = W + 60
-    const left   = -50                // was -280 – stays on screen
+    const left   = sectionW() + 60             // was -280 – stays on screen
     const x = p < 0.5
       ? right + (center - right) * (p * 2)
       : center + (left - center) * ((p - 0.5) * 2)
@@ -401,6 +409,16 @@ ScrollTrigger.create({
   trigger: '#rubik-section',
   start: '65% 60%',
   end: '85% 40%',
+  scrub: 1,
+  onUpdate(self) {
+    gsap.set('#rt-bottom', { opacity: self.progress, x: (1 - self.progress) * 80 })
+  },
+})
+
+ScrollTrigger.create({
+  trigger: '#rubik-section',
+  start: '70% 60%',
+  end: '100% 40%',
   scrub: 1,
   onUpdate(self) {
     gsap.set('#rt-bottom', { opacity: self.progress, x: (1 - self.progress) * 80 })
@@ -714,6 +732,7 @@ onUnmounted(() => {
       </div>
     </footer>
   </main>
+  <div class="star-field" aria-hidden="true"></div>
 </template>
 
 <style scoped>
@@ -724,6 +743,20 @@ html { scroll-behavior: auto; }
   color: #fff;
   font-family: 'Urbanist', sans-serif;
   overflow-x:hidden;
+}
+
+.star-field {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, rgba(0,255,136,0.55) 1px, transparent 1px),
+    radial-gradient(circle, rgba(0,255,136,0.3) 1px, transparent 1px),
+    radial-gradient(circle, rgba(0,255,136,0.2) 1px, transparent 1px);
+  background-size: 180px 180px, 120px 120px, 300px 300px;
+  background-position: 0 0, 60px 90px, 30px 150px;
+  animation: starDrift 60s linear infinite;
 }
 
 @keyframes starDrift {
@@ -1028,7 +1061,7 @@ html { scroll-behavior: auto; }
   min-height: 200vh;  /* was 180vh — needs more room for 3 text stops */
   background: #000;
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   z-index: 2;
 }
 .rubik-wrap {
