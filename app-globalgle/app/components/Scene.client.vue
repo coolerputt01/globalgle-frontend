@@ -203,6 +203,8 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
       console.error('Character failed to load:', err)
     }
   
+  
+    // ── Resize ───────────────────────────────────────────────────────────────────
     // ── Mouse tracking ───────────────────────────────────────────────────────────
     const onMouseMove = (e) => {
       mouse = {
@@ -212,7 +214,7 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
     }
     document.addEventListener('mousemove', onMouseMove)
     cleanupFns.push(() => document.removeEventListener('mousemove', onMouseMove))
-  
+
     // ── Resize ───────────────────────────────────────────────────────────────────
     const onResize = () => {
       if (!canvasDiv.value || !renderer || !camera) return

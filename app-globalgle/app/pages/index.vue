@@ -559,8 +559,8 @@ onUnmounted(() => {
       </ClientOnly>
       <div class="hero-content">
         <div class="hero-btns">
-          <button class="btn-glass primary">Get Started</button>
-          <button class="btn-glass">Login</button>
+          <button class="btn-start">Get Started</button>
+          <button class="btn-login">Login</button>
         </div>
         <h1 id="hero-title">GlobalGLE</h1>
       </div>
@@ -900,22 +900,91 @@ html { scroll-behavior: auto; }
   transform: scale(0.6);
   color: #fff;
 }
-.hero-btns { display: flex; gap: 1.5rem; opacity: 0; }
-.btn-glass {
-  padding: 0.85rem 2.5rem; border-radius: 50px;
-  font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 500;
-  cursor: pointer; letter-spacing: 0.05em;
-  transition: transform 0.2s, box-shadow 0.2s;
-  backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
-  border: 1px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.1); color: #fff;
+/* ── Outer glass pill container ───────────────────────────────────────────── */
+.hero-btns {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  opacity: 0;
+  position: relative;
+  overflow: hidden;
+  border-radius: 100px;
+  padding: 5px;
+  background: rgba(8,8,8,0.48);
+  backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
+  -webkit-backdrop-filter: blur(40px) saturate(200%) brightness(1.05);
+  border: 1px solid rgba(255,255,255,0.13);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.2),
+    0 10px 40px rgba(0,0,0,0.45);
 }
-.btn-glass:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 32px rgba(0,255,136,0.25);
-  background: rgba(0,255,136,0.15); border-color: rgba(0,255,136,0.4);
+/* top shimmer on outer pill */
+.hero-btns::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.11) 0%,
+    rgba(255,255,255,0.02) 50%,
+    rgba(255,255,255,0.07) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
 }
-.btn-glass.primary { background: rgba(0,255,136,0.15); border-color: rgba(0,255,136,0.45); }
+
+/* ── Get Started — green inner pill ──────────────────────────────────────── */
+.btn-start {
+  position: relative;
+  z-index: 1;
+  padding: 0.78rem 2.1rem;
+  border-radius: 100px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(0,22,13,0.62);
+  border: 1.5px solid rgba(0,255,136,0.86);
+  box-shadow:
+    inset 0 1px 0 rgba(0,255,136,0.22),
+    inset 0 -1px 0 rgba(0,0,0,0.3),
+    0 0 18px rgba(0,255,136,0.2);
+  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+}
+.btn-start:hover {
+  transform: scale(1.03);
+  background: rgba(0,32,18,0.68);
+  border-color: #00ff88;
+  box-shadow:
+    inset 0 1px 0 rgba(0,255,136,0.3),
+    inset 0 -1px 0 rgba(0,0,0,0.25),
+    0 0 32px rgba(0,255,136,0.38);
+}
+
+/* ── Login — plain text inside the pill ──────────────────────────────────── */
+.btn-login {
+  position: relative;
+  z-index: 1;
+  padding: 0.78rem 2.1rem;
+  border-radius: 100px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  color: rgba(255,255,255,0.78);
+  background: transparent;
+  border: none;
+  transition: color 0.2s, background 0.2s;
+}
+.btn-login:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.07);
+}
 
 /* ── G SECTION: CHANGE 4 — taller, more breathing room ───────────────────── */
 #g-section {
