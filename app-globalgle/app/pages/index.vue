@@ -159,28 +159,33 @@ gsap.utils.toArray('.number-layer').forEach((el, i) => {
     const pathEl = document.getElementById('spiral-path')
     const dotEl = document.getElementById('spiral-dot')
 
-    function buildSpiralPath() {
+  function buildSpiralPath() {
   const W = svg.clientWidth || window.innerWidth
-  const H = svg.clientHeight || document.getElementById('spiral-section').offsetHeight
-  
-  // Start from top-left, go straight right then spiral downward
-  const startX = W * 0.15, startY = H * 0.08
+  // Reach into the bigtext section below
+  const bigtextSection = document.getElementById('bigtext-section')
+  const spiralSection  = document.getElementById('spiral-section')
+  const extraReach = bigtextSection ? bigtextSection.offsetTop - spiralSection.offsetTop + bigtextSection.offsetHeight * 0.5 : 0
+  const H = Math.max(spiralSection.offsetHeight, extraReach)
+
+  const cx = W * 0.5
   const points = []
-  for (let i = 0; i <= 200; i++) {
-    const t = i / 200
-    const angle = Math.PI + t * Math.PI * 8 // start going right, spiral down
-    const radius = 60 + 100 * (1 - t * 0.5)
+
+  for (let i = 0; i <= 300; i++) {
+    const t = i / 300
+    // Smooth spiral — no sharp initial jump, eases into curves
+    const angle = -Math.PI / 2 + t * Math.PI * 7
+    const radius = (80 + 120 * (1 - t * 0.6)) * Math.sin(t * Math.PI * 0.5 + 0.1)
     points.push([
-      W * (0.5 + 0.1 * Math.cos(t * Math.PI * 0.5)) + radius * Math.cos(angle),
-      H * (0.05 + t * 0.88) + radius * Math.sin(angle),  // moves downward
+      cx + radius * Math.cos(angle),
+      H * 0.04 + t * H * 0.96 + radius * 0.18 * Math.sin(angle * 0.5),
     ])
   }
-  points[0] = [startX, startY]
-  // First few points go straight right before spiraling
-  points[1] = [startX + W * 0.15, startY]
-  points[2] = [startX + W * 0.28, startY + H * 0.03]
-  
-  pathEl.setAttribute('d', 'M ' + startX + ' ' + startY + points.slice(1).map(p => ' L ' + p[0] + ' ' + p[1]).join(''))
+
+  const d = 'M ' + points.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L ')
+  pathEl.setAttribute('d', d)
+
+  // Make the svg tall enough to reach bigtext
+  svg.style.height = H + 'px'
   return pathEl.getTotalLength()
 }
 
@@ -340,23 +345,45 @@ gsap.utils.toArray('.number-layer').forEach((el, i) => {
   const section = document.getElementById('rubik-section')
   const sectionW = () => section.offsetWidth
 
-  // Single trigger for cube movement
 ScrollTrigger.create({
   trigger: '#rubik-section',
   start: 'top bottom',
   end: 'bottom top',
-  scrub: 0,
+  scrub: 1,
   onUpdate(self) {
-    const p = self.progress
-    const W = sectionW()
-    const center = W / 2 - 210
-    const right  = W + 60
-    const left   = sectionW() + 60             // was -280 – stays on screen
-    const x = p < 0.5
-      ? right + (center - right) * (p * 2)
-      : center + (left - center) * ((p - 0.5) * 2)
-    canvas.style.left = x + 'px'
-  },
+  const p = self.progress
+  const W = sectionW()
+  const center = (W - 420) / 2
+  const ease = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
+
+  // 3-phase path: drop down center → swerve right → swerve left → exit right
+  let x, y
+
+  if (p < 0.25) {
+    // Phase 1: fall straight down from above into center
+    const t = ease(p / 0.25)
+    x = center
+    y = -320 + t * 320
+  } else if (p < 0.5) {
+    // Phase 2: swerve right
+    const t = ease((p - 0.25) / 0.25)
+    x = center + t * (W * 0.3)
+    y = 0 + t * 40
+  } else if (p < 0.75) {
+    // Phase 3: swerve back left, past center
+    const t = ease((p - 0.5) / 0.25)
+    x = center + W * 0.3 - t * (W * 0.55)   // swings left past center
+    y = 40 + t * 40
+  } else {
+    // Phase 4: exit right
+    const t = ease((p - 0.75) / 0.25)
+    x = center - W * 0.25 + t * (W * 0.8 + center - center + W * 0.25 + 60)
+    y = 80 + t * 20
+  }
+
+  canvas.style.left = x + 'px'
+  canvas.style.top  = y + 'px'
+},
 })
 
 // 2. Fade out the cube during the last part of its journey
@@ -1035,9 +1062,9 @@ html { scroll-behavior: auto; }
 .nl-bot .number-item { font-size: clamp(2.5rem, 6vw, 5rem); }
 
 /* ── SPIRAL ──────────────────────────────────────────────────────────────── */
-#spiral-section { width: 100vw; min-height: 160vh; background: #000; position: relative; padding: 4rem 0; z-index: 2; }
+#spiral-section { width: 100vw; min-height: 140vh;margin-bottom: -30vh; background: #000; position: relative; padding: 4rem 0; z-index: 10; }
 #spiral-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; overflow: visible; }
-.spiral-content { position: relative; z-index: 2; max-width: 600px; margin-left: 12vw; padding-top: 6rem; display: flex; flex-direction: column; gap: 4rem;}
+.spiral-content { position: relative; z-index: 2; max-width: 600px; margin: 0 auto; padding-top: 6rem; display: flex; flex-direction: column; gap: 4rem;}
 .spiral-para { opacity: 0; }
 .spiral-para p { color: #4b5563; font-size: 1.1rem; line-height: 1.8; font-weight: 300;margin: 0 auto; }
 
@@ -1048,12 +1075,12 @@ html { scroll-behavior: auto; }
   padding: 6rem 10vw; position: relative; z-index: 2;
 }
 #bigtext-section h2 {
-  font-family: 'Urbanist', sans-serif; font-size: clamp(1.5rem, 6vw, 3.5rem);
+  font-family: 'Urbanist', sans-serif; font-size: clamp(2rem, 6vw, 4rem);
   font-weight: 800; line-height: 1.15; color: #fff; opacity: 0; max-width: 900px;
-  text-align: center;
+  text-align: center;margin: 0 auto;
 }
 #bigtext-section .desc {
-  margin-top: 2rem; font-size: 1.15rem; color: #6b7280; opacity: 0; max-width: 700px;
+  margin-top: 2rem; font-size: 1.15rem; color: #6b7280; background: transparent;opacity: 0; max-width: 700px;margin: 0 auto;text-align: center;
 }
 
 /* ── RUBIK ───────────────────────────────────────────────────────────────── */
@@ -1067,16 +1094,16 @@ html { scroll-behavior: auto; }
 }
 .rubik-wrap {
   position: sticky;
-  top: 0;
+  top: 0;           /* base — JS offsets from here */
   height: 420px;
   z-index: 5;
   pointer-events: none;
 }
 
 #rubik-canvas {
-  /* remove position/top/left/z-index — inherited from wrap */
   position: absolute;
   left: 0;
+  top: 0;           /* JS will control both left and top */
   width: 420px;
   height: 420px;
 }
