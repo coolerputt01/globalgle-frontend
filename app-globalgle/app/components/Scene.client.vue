@@ -92,16 +92,15 @@ onMounted(async () => {
   renderer.domElement.style.zIndex = '1'
   canvasDiv.value.appendChild(renderer.domElement)
 
-  // ── Camera – zoomed in ──────────────────────────────────────────────
+  // ── Camera – portrait framing (face + upper chest) ──────────────────
   const isMobile = w < 768
-  camera = new THREE.PerspectiveCamera(16, w / h, 0.1, 1000)
+  camera = new THREE.PerspectiveCamera(12, w / h, 0.1, 1000)
   if (isMobile) {
-    camera.position.set(0, 6, 18)
+    camera.position.set(0, 13, 32)
   } else {
-    // Closer framing: lower height, shorter distance
-    camera.position.set(0.5,25, 14)
+    camera.position.set(0, 13, 30)
   }
-  camera.lookAt(0, 5, -10)
+  camera.lookAt(0, 12, 0)
   camera.updateProjectionMatrix()
 
   const light = setLighting(scene)

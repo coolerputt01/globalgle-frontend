@@ -4,7 +4,6 @@ import Earth from '~/components/Earth.client.vue'
 import Scene from '~/components/Scene.client.vue'
 
 const threeEarth = ref(null)
-let scrollTriggers = []
 let cleanupFns = []
 
 onMounted(async () => {
@@ -24,135 +23,125 @@ onMounted(async () => {
   cleanupFns.push(() => window.removeEventListener('scroll', onScroll))
 
   // ─── HERO EARTH FADE ─────────────────────────────────────────────────────
-  const heroEarthTrigger = ScrollTrigger.create({
+  ScrollTrigger.create({
     trigger: '#hero',
     start: 'top top',
     end: 'bottom top',
     scrub: 1,
-    onUpdate(self) {
+    onUpdate: (self) => {
       if (!threeEarth.value) return
-      const earthCanvas = $('.three-canvas')
+      const p = self.progress
+      const earthCanvas = document.querySelector('.three-canvas')
       if (earthCanvas) {
-        const opacity = Math.max(0, 1 - self.progress * 3)
-        earthCanvas.style.opacity = opacity
-        earthCanvas.style.visibility = opacity === 0 ? 'hidden' : 'visible'
-        earthCanvas.style.pointerEvents = opacity === 0 ? 'none' : 'auto'
+        const op = Math.max(0, 1 - p * 3)
+        earthCanvas.style.opacity = op
+        earthCanvas.style.visibility = op === 0 ? 'hidden' : 'visible'
+        earthCanvas.style.pointerEvents = op === 0 ? 'none' : 'auto'
+        if (p >= 1) {
+          earthCanvas.style.display = 'none'
+        } else if (op > 0) {
+          earthCanvas.style.display = ''
+        }
       }
-      if (self.progress <= 0.35 && threeEarth.value.setScrollProgress) {
-        threeEarth.value.setScrollProgress(self.progress)
+      if (p > 0.35) return
+      if (threeEarth.value.setScrollProgress) {
+        threeEarth.value.setScrollProgress(p)
       }
     }
   })
-  scrollTriggers.push(heroEarthTrigger)
 
-  // ─── HERO LETTERS SCATTER & CONVERGE ─────────────────────────────────────
-  const letters = $$('.hero-letter')
-  const scatterPositions = [
-    { x: -120, y: -80 }, { x: 80, y: -100 }, { x: -140, y: 20 },
-    { x: 110, y: -40 },  { x: -80, y: 90 },  { x: 130, y: 70 },
-    { x: -30, y: 20 },   { x: 50, y: 110 },  { x: 100, y: -90 },
-  ]
-
-  letters.forEach((el, i) => {
-    gsap.set(el, {
-      x: scatterPositions[i].x,
-      y: scatterPositions[i].y,
-      opacity: 0,
-      rotation: (Math.random() - 0.5) * 40
-    })
+  // ─── HERO LETTERS — cinematic stagger entrance ────────────────────────────
+  const letters = document.querySelectorAll('.hero-letter')
+  gsap.set(letters, { y: 80, opacity: 0, rotation: 0, scale: 0.85 })
+  gsap.to(letters, {
+    y: 0,
+    opacity: 1,
+    rotation: 0,
+    scale: 1,
+    duration: 0.9,
+    stagger: 0.07,
+    ease: 'power3.out',
+    delay: 0.4,
   })
-  gsap.to(letters, { opacity: 1, duration: 1.2, stagger: 0.08, ease: 'power2.out', delay: 0.3 })
-  gsap.to('.hero-btns', { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.1 })
 
-  const heroScrollTrigger = ScrollTrigger.create({
+  gsap.set('.hero-content', { clearProps: 'all' })
+
+  ScrollTrigger.create({
     trigger: '#hero',
     start: 'top top',
     end: 'bottom top',
     scrub: 1,
     onUpdate(self) {
       const p = self.progress
-      const earthMount = $('.earth-mount')
-      if (earthMount) earthMount.style.display = p >= 0.99 ? 'none' : ''
-
-      const joinP = Math.min(p / 0.25, 1)
-      letters.forEach((el, i) => {
-        gsap.set(el, {
-          x: scatterPositions[i].x * (1 - joinP),
-          y: scatterPositions[i].y * (1 - joinP),
-          rotation: (scatterPositions[i].x / 10) * (1 - joinP),
-        })
-      })
-
-      const driftP = Math.max(0, (p - 0.25) / 0.6)
-      const maxDrift = window.innerWidth < 768 ? window.innerHeight * 0.15 : window.innerHeight * 0.3
-      gsap.set('.hero-content', { y: driftP * maxDrift })
-
-      const fadeOut = p > 0.85 ? Math.max(0, 1 - (p - 0.85) / 0.15) : 1
-      gsap.set('#hero-title', { opacity: fadeOut })
-      gsap.set('.hero-btns', { opacity: fadeOut })
-    }
+      const earthMount = document.querySelector('.earth-mount')
+      if (earthMount) {
+        earthMount.style.display = p >= 0.99 ? 'none' : ''
+      }
+      const isMobile = window.innerWidth < 768
+      const driftP = Math.max(0, p / 0.75)
+      const maxDrift = isMobile ? window.innerHeight * 0.15 : window.innerHeight * 0.3
+      gsap.set('.hero-content', { y: Math.min(driftP, 1) * maxDrift })
+      const fadeOut = Math.max(0, 1 - (p - 0.85) / 0.15)
+      const opacity = p > 0.85 ? fadeOut : 1
+      gsap.set('#hero-title', { opacity })
+      gsap.set('.hero-btns',  { opacity })
+    },
   })
-  scrollTriggers.push(heroScrollTrigger)
 
-  // ─── SCENE GLE TEXT (new: fades in from top to left side) ────────────────
+  gsap.to('.hero-btns', { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.1 })
+
+  // ─── SCENE GLE TEXT ───────────────────────────────────────────────────────
   const sceneGleText = $('.scene-gle-text')
-if (sceneGleText) {
-  // Start at top center, invisible
-  gsap.set(sceneGleText, {
-    opacity: 0,
-    top: '15%',
-    left: '50%',
-    x: '-50%',
-    y: 0,
-  })
+  if (sceneGleText) {
+    gsap.set(sceneGleText, { opacity: 0, top: '15%', left: '50%', x: '-50%', y: 0 })
+    ScrollTrigger.create({
+      trigger: '.scene-wrapper',
+      start: 'top 80%',
+      end: 'bottom 20%',
+      scrub: 1,
+      onUpdate(self) {
+        const p = self.progress + 0.5
+        gsap.set(sceneGleText, { opacity: p })
+        const currentTop = 15 * (1 - p) + 30 * p
+        gsap.set(sceneGleText, { top: `${currentTop}%` })
+      }
+    })
+  }
 
-  const trigger = ScrollTrigger.create({
-    trigger: '.scene-wrapper',
-    start: 'top 80%',
-    end: 'bottom 20%',
-    scrub: 1,
-    onUpdate(self) {
-      const p = self.progress + 0.5;
-      // Fade in progressively
-      gsap.set(sceneGleText, { opacity: p })
-      // Move straight down from 15% to 45% of viewport height
-      const targetTop = 30 // percent
-      const currentTop = 15 * (1 - p) + targetTop * p
-      gsap.set(sceneGleText, { top: `${currentTop}%` })
-      // Keep centered horizontally: left: 50%, x: -50% unchanged
-    }
-  })
-  scrollTriggers.push(trigger)
-}
-
-  // ─── NUMBERS SECTION ─────────────────────────────────────────────────────
-  const numberItems = $$('.number-item')
+  // ─── NUMBERS ───────────────────────────────────────────────────────────────
+  const numberItems = gsap.utils.toArray('.number-item')
   numberItems.forEach((el, i) => {
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: '#numbers-section',
       start: 'top 80%',
       end: 'bottom 20%',
       scrub: 1.5,
       onUpdate(self) {
         const p = self.progress
-        const stagger = 0.07, duration = 0.28
+        const stagger = 0.07
+        const duration = 0.28
         const itemStart = i * stagger
         const itemPeak  = itemStart + duration
-        const itemEnd   = itemPeak  + duration
+        const itemEnd   = itemPeak + duration
         let local = 0
-        if      (p < itemStart) local = 0
-        else if (p < itemPeak)  local = (p - itemStart) / duration
-        else if (p < itemEnd)   local = 1 - (p - itemPeak) / duration
-        const dir = p < itemPeak ? 1 : -1
-        gsap.set(el, { opacity: local, x: dir * (1 - local) * 200, y: dir * (1 - local) * 200 })
-      }
+        if (p < itemStart) {
+          local = 0
+        } else if (p < itemPeak) {
+          local = (p - itemStart) / duration
+        } else if (p < itemEnd) {
+          local = 1 - (p - itemPeak) / duration
+        }
+        if (p < itemPeak) {
+          gsap.set(el, { opacity: local, x: (1 - local) * 200, y: (1 - local) * 200 })
+        } else {
+          gsap.set(el, { opacity: local, x: -(1 - local) * 200, y: -(1 - local) * 200 })
+        }
+      },
     })
-    scrollTriggers.push(trigger)
   })
 
-  const numberLayers = $$('.number-layer')
-  numberLayers.forEach((el, i) => {
-    const trigger = ScrollTrigger.create({
+  gsap.utils.toArray('.number-layer').forEach((el, i) => {
+    ScrollTrigger.create({
       trigger: '#numbers-section',
       start: 'top bottom',
       end: 'bottom top',
@@ -161,61 +150,32 @@ if (sceneGleText) {
         gsap.set(el, { x: (i % 2 === 0 ? -1 : 1) * 30 * self.progress })
       }
     })
-    scrollTriggers.push(trigger)
   })
-
-  // ─── BIG TEXT SECTION ────────────────────────────────────────────────────
-  const bigHeader = $('#big-header')
-  if (bigHeader) {
-    const trigger = ScrollTrigger.create({
-      trigger: '#bigtext-section',
-      start: 'top 80%',
-      end: 'top 30%',
-      scrub: 1,
-      onUpdate(self) { gsap.set(bigHeader, { opacity: self.progress, y: (1 - self.progress) * 40 }) }
-    })
-    scrollTriggers.push(trigger)
-  }
-  const bigDesc = $('.desc')
-  if (bigDesc) {
-    const trigger = ScrollTrigger.create({
-      trigger: '#bigtext-section',
-      start: 'top 75%',
-      end: 'top 25%',
-      scrub: 1,
-      onUpdate(self) { gsap.set(bigDesc, { opacity: self.progress, y: (1 - self.progress) * 24 }) }
-    })
-    scrollTriggers.push(trigger)
-  }
 
   // ─── FAQ SECTION ─────────────────────────────────────────────────────────
   const faqLabel = $('#faq-label')
   if (faqLabel) {
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: '#faq-section',
       start: 'top 80%', end: 'top 45%', scrub: 1,
       onUpdate(self) { gsap.set(faqLabel, { opacity: self.progress, y: (1 - self.progress) * 20 }) }
     })
-    scrollTriggers.push(trigger)
   }
   const faqHead = $('#faq-head')
   if (faqHead) {
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: '#faq-section',
       start: 'top 78%', end: 'top 40%', scrub: 1,
       onUpdate(self) { gsap.set(faqHead, { opacity: self.progress, y: (1 - self.progress) * 30 }) }
     })
-    scrollTriggers.push(trigger)
   }
   const faqItems = $$('.faq-item')
   faqItems.forEach(el => {
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: el,
       start: 'top 90%', end: 'top 60%', scrub: 1,
       onUpdate(self) { gsap.set(el, { opacity: self.progress, y: (1 - self.progress) * 20 }) }
     })
-    scrollTriggers.push(trigger)
-
     const btn = el.querySelector('.faq-q')
     const handler = () => {
       const isOpen = el.classList.contains('open')
@@ -229,7 +189,7 @@ if (sceneGleText) {
   // ─── GLE SECTION ─────────────────────────────────────────────────────────
   const gleWords = $$('.gle-word')
   gleWords.forEach((el, i) => {
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: '#gle-section',
       start: `top ${85 - i * 10}%`,
       end: `top ${55 - i * 10}%`,
@@ -247,13 +207,12 @@ if (sceneGleText) {
         cleanupFns.push(() => t.kill())
       }
     })
-    scrollTriggers.push(trigger)
   })
 
   // ─── FOOTER ──────────────────────────────────────────────────────────────
   const footer = $('#footer')
   if (footer) {
-    const trigger = ScrollTrigger.create({
+    ScrollTrigger.create({
       trigger: '#footer-spacer',
       start: 'top 90%',
       end: 'top 20%',
@@ -262,7 +221,6 @@ if (sceneGleText) {
         gsap.set(footer, { opacity: self.progress, scale: 0.96 + self.progress * 0.04 })
       }
     })
-    scrollTriggers.push(trigger)
   }
 })
 
@@ -280,8 +238,6 @@ onUnmounted(() => {
 
     <!-- ── HERO ───────────────────────────────────────────────────────────── -->
     <section id="hero">
-      <div class="hero-bg-image" style="background-image: url('/bg_image.PNG')"></div>
-      <div class="hero-bg-overlay"></div>
       <ClientOnly>
         <Earth ref="threeEarth" class="earth-mount" />
       </ClientOnly>
@@ -307,8 +263,6 @@ onUnmounted(() => {
     <!-- ── SCENE (character section) ─────────────────────────────────────── -->
     <section>
       <div class="scene-wrapper">
-        <div class="scene-gle-bg" aria-hidden="true"></div>
-        <!-- NEW: GLE text that fades in from top to left side -->
         <div class="scene-gle-text">GLE</div>
         <ClientOnly>
           <Scene />
@@ -344,12 +298,6 @@ onUnmounted(() => {
         <div class="screen-scanlines" aria-hidden="true"></div>
         <div class="screen-vignette"  aria-hidden="true"></div>
       </div>
-    </section>
-
-    <!-- ── BIG TEXT ───────────────────────────────────────────────────────── -->
-    <section id="bigtext-section">
-      <h2 id="big-header">The infrastructure for <br> global payments.</h2>
-      <div class="desc">One API, 120+ countries, 85+ currencies. <br> Let your business move freely.</div>
     </section>
 
     <!-- ── FAQ ────────────────────────────────────────────────────────────── -->
@@ -450,7 +398,6 @@ onUnmounted(() => {
       </footer>
     </div>
   </main>
-  <div class="star-field" aria-hidden="true"></div>
 </template>
 
 <style scoped>
@@ -458,30 +405,12 @@ onUnmounted(() => {
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: auto; }
 :global(body) {
-  background: #000;
+  background: #0a0d14;
   color: #fff;
   font-family: 'Urbanist', sans-serif;
   overflow-x: hidden;
 }
 
-/* STAR FIELD */
-.star-field {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle, rgba(0,255,136,0.55) 1px, transparent 1px),
-    radial-gradient(circle, rgba(0,255,136,0.3)  1px, transparent 1px),
-    radial-gradient(circle, rgba(0,255,136,0.2)  1px, transparent 1px);
-  background-size: 180px 180px, 120px 120px, 300px 300px;
-  background-position: 0 0, 60px 90px, 30px 150px;
-  animation: starDrift 60s linear infinite;
-}
-@keyframes starDrift {
-  from { background-position: 0 0; }
-  to   { background-position: 512px 512px; }
-}
 
 /* HERO */
 #hero {
@@ -493,25 +422,6 @@ html { scroll-behavior: auto; }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-}
-.hero-bg-image {
-  position: absolute;
-  inset: 0;
-  background-size: fit;
-  background-position: top;
-  background-repeat: no-repeat;
-  z-index: 0;
-  animation: heroBgDrift 18s ease-in-out infinite alternate;
-}
-@keyframes heroBgDrift {
-  from { transform: scale(1.04) translateY(0); }
-  to   { transform: scale(1.08) translateY(-1.5%); }
-}
-.hero-bg-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,.35) 0%, rgba(0,0,0,.10) 40%, rgba(0,0,0,.60) 80%, rgba(0,0,0,.95) 100%);
-  z-index: 1;
 }
 .hero-content {
   position: fixed;
@@ -603,22 +513,9 @@ html { scroll-behavior: auto; }
   height: 130vh;
   position: relative;
   z-index: 2;
-  background: #000;
+  background: #0a0d14;
   overflow: hidden;
 }
-.scene-gle-bg {
-  position: absolute;
-  inset: 0;
-  top: 40vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  z-index: 0;
-  pointer-events: none;
-}
-/* NEW: animated GLE text inside scene */
 .scene-gle-text {
   position: absolute;
   font-family: 'Urbanist', sans-serif;
@@ -632,38 +529,12 @@ html { scroll-behavior: auto; }
   pointer-events: none;
   will-change: transform, opacity, left, top;
 }
-.gle-row { display: flex; align-items: center; justify-content: center; gap: clamp(1rem, 4vw, 4rem); }
-.scene-gle-bg span {
-  font-family: 'Urbanist', sans-serif;
-  font-size: clamp(10rem, 7vw, 25rem);
-  font-weight: 800;
-  color: transparent;
-  -webkit-text-stroke: 3px rgba(0,255,136,0.3);
-  letter-spacing: 0.05em;
-  animation: gleFloat 2s ease-in-out infinite alternate;
-}
-.gle-row:nth-child(1) span:nth-child(1) { animation-delay: 0s; }
-.gle-row:nth-child(1) span:nth-child(2) { animation-delay: 0.15s; }
-.gle-row:nth-child(1) span:nth-child(3) { animation-delay: 0.3s; }
-.gle-row:nth-child(2) span:nth-child(1) { animation-delay: 0.2s; }
-.gle-row:nth-child(2) span:nth-child(2) { animation-delay: 0.35s; }
-.gle-row:nth-child(2) span:nth-child(3) { animation-delay: 0.5s; }
-.gle-row:nth-child(3) span:nth-child(1) { animation-delay: 0.4s; }
-.gle-row:nth-child(3) span:nth-child(2) { animation-delay: 0.55s; }
-.gle-row:nth-child(3) span:nth-child(3) { animation-delay: 0.7s; }
-.gle-row:nth-child(4) span:nth-child(1) { animation-delay: 0.1s; }
-.gle-row:nth-child(4) span:nth-child(2) { animation-delay: 0.25s; }
-.gle-row:nth-child(4) span:nth-child(3) { animation-delay: 0.4s; }
-.gle-row:nth-child(5) span:nth-child(1) { animation-delay: 0.3s; }
-.gle-row:nth-child(5) span:nth-child(2) { animation-delay: 0.45s; }
-.gle-row:nth-child(5) span:nth-child(3) { animation-delay: 0.6s; }
-@keyframes gleFloat { from { transform: translateY(0); } to { transform: translateY(-28px); } }
 
 /* NUMBERS */
 #numbers-section {
   width: 100vw;
   min-height: 120vh;
-  background: #000;
+  background: #0a0d14;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -714,26 +585,9 @@ html { scroll-behavior: auto; }
 .nl-mid .number-item { font-size: clamp(5rem, 14vw, 13rem); -webkit-text-stroke: 2px rgba(0,255,136,0.4); color: transparent; }
 .nl-bot .number-item { font-size: clamp(2.5rem, 6vw, 5rem); color: rgba(0,255,136,0.4); -webkit-text-stroke: 1px rgba(255,255,255,0.15); }
 
-/* BIG TEXT */
-#bigtext-section {
-  width: 100vw; min-height: 80vh; background: #000;
-  display: flex; flex-direction: column; justify-content: center;
-  padding: 6rem 10vw; position: relative; z-index: 2;
-}
-#bigtext-section h2 {
-  font-family: 'Urbanist', sans-serif;
-  font-size: clamp(2rem, 6vw, 4rem);
-  font-weight: 800; line-height: 1.15; color: #fff;
-  max-width: 900px; text-align: center; margin: 0 auto;
-}
-#bigtext-section .desc {
-  margin: 2rem auto 0; font-size: 1.15rem; color: #6b7280;
-  background: transparent; max-width: 700px; text-align: center;
-}
-
 /* FAQ */
 #faq-section {
-  width: 100vw; min-height: 100vh; background: #000;
+  width: 100vw; min-height: 100vh; background: #0a0d14;
   padding: 6rem 10vw; position: relative; z-index: 40;
 }
 #faq-section::before {
@@ -765,7 +619,7 @@ html { scroll-behavior: auto; }
 
 /* GLE */
 #gle-section {
-  width: 100vw; min-height: 80vh; background: #000;
+  width: 100vw; min-height: 80vh; background: #0a0d14;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; position: relative; z-index: 15;
 }
@@ -785,9 +639,9 @@ html { scroll-behavior: auto; }
 }
 
 /* FOOTER */
-#footer-spacer { width: 100vw; position: relative; z-index: 30; background: #7c3aed; overflow: hidden; }
+#footer-spacer { width: 100vw; position: relative; z-index: 30; background: #0a0d14; overflow: hidden; }
 #footer {
-  background: #7c3aed;
+  background: #0a0d14;
   width: 100%; min-height: 70vh;
   padding: 5rem 6vw 4rem;
   display: grid;
@@ -808,7 +662,7 @@ html { scroll-behavior: auto; }
 .footer-input-row input { background: transparent; border: none; color: #fff; font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; outline: none; width: 100%; }
 .footer-input-row input::placeholder { color: rgba(255,255,255,0.45); }
 .footer-submit {
-  padding: 1rem 2rem; background: #fff; color: #7c3aed;
+  padding: 1rem 2rem; background: #fff; color: #0a0d14;
   border: none; border-radius: 14px;
   font-family: 'Urbanist', sans-serif; font-size: 1rem; font-weight: 700;
   cursor: pointer; align-self: stretch; min-height: 100%;
@@ -841,9 +695,7 @@ html { scroll-behavior: auto; }
   #bigtext-section h2 { font-size: clamp(1.5rem, 7vw, 2.8rem); }
   #bigtext-section .desc { font-size: 1rem; }
   .scene-wrapper { height: 80vh; }
-  .scene-gle-text { font-size: clamp(2rem, 6vw, 4rem); } /* smaller on mobile */
-  .scene-gle-bg span { font-size: clamp(3rem, 12vw, 6rem); }
-  .gle-row { gap: 1rem; }
+  .scene-gle-text { font-size: clamp(2rem, 6vw, 4rem); }
   #faq-section { padding: 4rem 5vw; }
   .faq-header { font-size: clamp(1.6rem, 7vw, 2.5rem); margin-bottom: 2rem; }
   .faq-item { padding: 1.1rem 1.2rem; }
@@ -854,6 +706,7 @@ html { scroll-behavior: auto; }
   #gle-section { min-height: 40vh; }
   .gle-word { font-size: clamp(3rem, 10vw, 6rem); }
   .nav-brand { display: none; }
+  #footer { margin-top: 0 !important; clip-path: none !important; opacity: 1 !important; }
 }
 @media (max-width: 480px) {
   #hero-title { font-size: clamp(2rem, 16vw, 3.5rem); letter-spacing: 0.05em; }
@@ -861,6 +714,5 @@ html { scroll-behavior: auto; }
   .btn-start { padding: 0.65rem 1.4rem; font-size: 0.88rem; }
   .btn-login { padding: 0.65rem 1.2rem; font-size: 0.88rem; }
   #faq-section { padding: 3rem 4vw; }
-  .scene-gle-bg { display: none; }
 }
 </style>
