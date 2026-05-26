@@ -45,34 +45,35 @@ if (window.innerWidth < 768) {
 
   // ─── HERO ─────────────────────────────────────────────────────────────────
   ScrollTrigger.create({
-    trigger: '#hero',
-    start: 'top top',
-    end: 'bottom top',
-    scrub: 1,
-    onUpdate: (self) => {
-  if (!threeEarth.value) return
-  const p = self.progress
+  trigger: '#hero',
+  start: 'top top',
+  end: 'bottom top',
+  scrub: 1,
+  onUpdate: (self) => {
+    if (!threeEarth.value) return
+    const p = self.progress
 
-  // fade out
-  const earthCanvas = document.querySelector('.three-canvas')
-  if (earthCanvas) {
-    const op = Math.max(0, 1 - p * 3)
-    earthCanvas.style.opacity = op
-    earthCanvas.style.visibility = op === 0 ? 'hidden' : 'visible'
-    earthCanvas.style.pointerEvents = op === 0 ? 'none' : 'auto'
+    const earthCanvas = document.querySelector('.three-canvas')
+    if (earthCanvas) {
+      const op = Math.max(0, 1 - p * 3)
+      earthCanvas.style.opacity = op
+      earthCanvas.style.visibility = op === 0 ? 'hidden' : 'visible'
+      earthCanvas.style.pointerEvents = op === 0 ? 'none' : 'auto'
+      // Hard hide the whole Earth wrapper once hero is done
+      const earthWrapper = document.querySelector('.three-canvas')?.closest('.earth-wrapper, [class*="earth"], [class*="three"]')
+      if (p >= 1) {
+        earthCanvas.style.display = 'none'
+      } else if (op > 0) {
+        earthCanvas.style.display = ''
+      }
+    }
+
+    if (p > 0.35) return
+    if (threeEarth.value.setScrollProgress) {
+      threeEarth.value.setScrollProgress(p)
+    }
   }
-
-  // stop doing anything once faded
-  if (p > 0.35) return
-
-  if (threeEarth.value.setScrollProgress) {
-    threeEarth.value.setScrollProgress(p)
-  }
-
-  const heroContent = document.querySelector('.hero-content')
-  if (heroContent) gsap.set(heroContent, { opacity: 1 - p * 2.2 })
-}
-  })
+})
 
 // ─── HERO LETTERS — scatter around globe then converge on scroll ────────────
 const letters = document.querySelectorAll('.hero-letter')
@@ -124,6 +125,10 @@ ScrollTrigger.create({
   scrub: 1,
   onUpdate(self) {
     const p = self.progress
+    const earthMount = document.querySelector('.earth-mount')
+if (earthMount) {
+  earthMount.style.display = p >= 0.99 ? 'none' : ''
+}
 
     // Phase 1 (0→25%): letters converge
     const joinP = Math.min(p / 0.25, 1)
@@ -598,8 +603,8 @@ onUnmounted(() => {
       <div class="hero-bg-overlay"></div>
 
       <ClientOnly>
-        <Earth ref="threeEarth" />
-      </ClientOnly>
+  <Earth ref="threeEarth" class="earth-mount" />
+</ClientOnly>
       <div class="hero-content">
         <div class="hero-btns">
           <button class="btn-start">Get Started</button>
@@ -1568,8 +1573,9 @@ text-align: center;
 
 @media (max-width: 480px) {
   #hero-title { font-size: clamp(2rem, 16vw, 3.5rem); letter-spacing: 0.05em; }
-  .hero-btns { flex-direction: column; gap: 0.5rem; border-radius: 20px; padding: 8px; }
-  .btn-start, .btn-login { width: 100%; text-align: center; border-radius: 14px; }
+  .hero-btns { padding: 4px; }
+.btn-start { padding: 0.65rem 1.4rem; font-size: 0.88rem; }
+.btn-login { padding: 0.65rem 1.2rem; font-size: 0.88rem; }
   .numbers-screen { min-height: 260px; }
   #faq-section { padding: 3rem 4vw; }
   .scene-wrapper { height: 65vh; }
