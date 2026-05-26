@@ -111,6 +111,12 @@ gsap.to(letters, {
   delay: 0.3,
 })
 
+// Cache the hero's top offset once
+const heroEl = document.getElementById('hero')
+const heroH  = () => heroEl.offsetHeight
+
+gsap.set('.hero-content', { clearProps: 'all' })
+
 ScrollTrigger.create({
   trigger: '#hero',
   start: 'top top',
@@ -119,7 +125,7 @@ ScrollTrigger.create({
   onUpdate(self) {
     const p = self.progress
 
-    // First 25% — letters converge from scatter into word
+    // Phase 1 (0→25%): letters converge
     const joinP = Math.min(p / 0.25, 1)
     letters.forEach((el, i) => {
       const pos = scatterPositions[i]
@@ -130,16 +136,17 @@ ScrollTrigger.create({
       })
     })
 
-    // After 25% — the whole joined title drifts down with scroll
-    const driftP = Math.max(0, (p - 0.25) / 0.25)
-    const driftY = driftP * window.innerHeight
-    gsap.set('#hero-title', { y: driftY })
-    gsap.set('.hero-btns', { y: driftY })
+    // Phase 2 (25→85%): content drifts down inside its fixed container
+    const isMobile = window.innerWidth < 768
+    const driftP = Math.max(0, (p - 0.25) / 0.6)
+    const maxDrift = isMobile ? window.innerHeight * 0.15 : window.innerHeight * 0.3
+    gsap.set('.hero-content', { y: driftP * maxDrift })
 
-    // Fade out in the last 15%
-    const fadeOut = Math.max(0, 1 - (p - 0.85) / 0.10)
-    gsap.set('#hero-title', { opacity: p > 0.85 ? fadeOut : 1 })
-    gsap.set('.hero-btns', { opacity: p > 0.85 ? fadeOut : 1 })
+    // Phase 3 (85→100%): fade out
+    const fadeOut = Math.max(0, 1 - (p - 0.85) / 0.15)
+    const opacity = p > 0.85 ? fadeOut : 1
+    gsap.set('#hero-title', { opacity })
+    gsap.set('.hero-btns',  { opacity })
   },
 })
 
@@ -916,23 +923,25 @@ html { scroll-behavior: auto; }
   /* CHANGE 4: taller hero gives the G animation more room */
   height: 180vh;
   overflow: hidden;
-  padding-bottom: 40vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  margin-bottom: 0; padding-bottom: 0;
 }
 .hero-content {
-  position: sticky;
-  top: 20vh;
-  bottom: 215vh;
-  z-index: 4;
-  text-align: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2.5rem;
-  will-change: opacity;
+  z-index: 2;
+  pointer-events: none;
 }
 #hero-title {
   font-family: 'Urbanist', sans-serif;
@@ -958,6 +967,7 @@ html { scroll-behavior: auto; }
 .hero-btns {
   display: flex;
   align-items: center;
+  pointer-events: all;
   gap: 0;
   opacity: 0;
   position: relative;
@@ -1090,6 +1100,7 @@ html { scroll-behavior: auto; }
   overflow: hidden;
   position: relative;
   z-index: 2;
+  margin-top: 0; 
 }
 
 .numbers-screen {
@@ -1458,7 +1469,7 @@ text-align: center;
 .scene-gle-bg {
   position: absolute;
   inset: 0;
-  top: 80vh;
+  top: 40vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1475,10 +1486,10 @@ text-align: center;
 }
 .scene-gle-bg span {
   font-family: 'Urbanist', sans-serif;
-  font-size: clamp(7rem, 7vw, 17rem);
+  font-size: clamp(10rem, 7vw, 25rem);
   font-weight: 800;
   color: transparent;
-  -webkit-text-stroke: 1.5px rgba(0, 255, 136, 0.12);
+  -webkit-text-stroke: 3px rgba(0, 255, 136, 0.3);
   letter-spacing: 0.05em;
   animation: gleFloat 2s ease-in-out infinite alternate;
 }
@@ -1505,8 +1516,8 @@ text-align: center;
 
 @media (max-width: 768px) {
   /* Hero */
-  #hero { height: 220vh; padding-bottom: 20vh; }
-  .hero-content { top: 15vh; gap: 1.5rem; }
+  #hero { height: 220vh; }
+  .hero-content {gap: 1.5rem; }
   #hero-title { font-size: clamp(2.2rem, 14vw, 5rem); }
 
   /* Numbers */
@@ -1574,6 +1585,9 @@ text-align: center;
   .rubik-wrap, #rubik-canvas { display: none; }
   .rubik-text-left, .rubik-text-right, .rubik-text-bottom { display: none; }
   #rubik-section { min-height: unset; overflow: visible; padding: 4rem 5vw; }
+  #hero { height: 220vh; }
+  .hero-content { gap: 1.5rem; }   /* just gap, nothing else */
+  #hero-title { font-size: clamp(2.2rem, 14vw, 5rem); }
 
   /* Show mobile cards */
   .rubik-mobile-cards {
