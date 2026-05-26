@@ -113,9 +113,10 @@ let targetCameraZ = 24.7
     canvasDiv.value.appendChild(renderer.domElement)
   
     // ── Camera ──────────────────────────────────────────────────────────────────
-    camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000);
-    camera.position.set(2, 13.5, 27);
-    camera.zoom = 1.4
+    const isMobile = w < 768
+camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000)
+camera.position.set(isMobile ? 0 : 2, 13.5, isMobile ? 32 : 27)
+camera.zoom = isMobile ? 1.0 : 1.4
     camera.updateProjectionMatrix()
   
     // ── Lighting ─────────────────────────────────────────────────────────────────
@@ -153,8 +154,6 @@ console.log('Magic string:', magicString);
 if (magicString !== 'glTF') {
   console.error('Decryption failed – not a valid GLB file');
 }
-// Also check file size
-console.log('Decrypted size:', decrypted.byteLength);
 // -----------------
 const blobUrl = URL.createObjectURL(new Blob([decrypted]));
   
@@ -333,7 +332,6 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
       const delta = clock.getDelta()
       if (mixer) mixer.update(delta)
       renderer.render(scene, camera)
-      console.log(w, h)
     }
     animate()
   })

@@ -12,7 +12,20 @@ onMounted(async () => {
   const { ScrollTrigger } = await import('gsap/ScrollTrigger')
   gsap.registerPlugin(ScrollTrigger)
 
-  
+  // ─── MOBILE RUBIK CARDS — slide in on scroll ───────────────────────────────
+if (window.innerWidth < 768) {
+  const cards = document.querySelectorAll('.rubik-card')
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 150)
+        observer.unobserve(entry.target)
+      }
+    })
+  }, { threshold: 0.2 })
+  cards.forEach(card => observer.observe(card))
+  cleanup.push(() => observer.disconnect())
+}
 
 
   // ─── NAVBAR ────────────────────────────────────────────────────────────────
@@ -98,25 +111,35 @@ gsap.to(letters, {
   delay: 0.3,
 })
 
-// On scroll — letters converge to their natural position in the word
 ScrollTrigger.create({
   trigger: '#hero',
   start: 'top top',
-  end: '15%% top',
-  scrub: 0.4,
+  end: 'bottom top',
+  scrub: 1,
   onUpdate(self) {
     const p = self.progress
+
+    // First 25% — letters converge from scatter into word
+    const joinP = Math.min(p / 0.25, 1)
     letters.forEach((el, i) => {
-  const pos = scatterPositions[i]
-  gsap.set(el, {
-    x: pos.x * (1 - p),
-    y: pos.y * (1 - p) + p * 120,   // drifts down 120px as letters converge
-    rotation: (pos.x / 10) * (1 - p),
-  })
-})
-    // Also fade out the whole title as user scrolls past
-    const fadeOut = Math.max(0, 1 - (p - 0.6) / 0.4)
-    gsap.set('#hero-title', { opacity: p > 0.6 ? fadeOut : 1 })
+      const pos = scatterPositions[i]
+      gsap.set(el, {
+        x: pos.x * (1 - joinP),
+        y: pos.y * (1 - joinP),
+        rotation: (pos.x / 10) * (1 - joinP),
+      })
+    })
+
+    // After 25% — the whole joined title drifts down with scroll
+    const driftP = Math.max(0, (p - 0.25) / 0.25)
+    const driftY = driftP * window.innerHeight
+    gsap.set('#hero-title', { y: driftY })
+    gsap.set('.hero-btns', { y: driftY })
+
+    // Fade out in the last 15%
+    const fadeOut = Math.max(0, 1 - (p - 0.85) / 0.10)
+    gsap.set('#hero-title', { opacity: p > 0.85 ? fadeOut : 1 })
+    gsap.set('.hero-btns', { opacity: p > 0.85 ? fadeOut : 1 })
   },
 })
 
@@ -384,16 +407,19 @@ ScrollTrigger.create({
   end: 'bottom top',
   scrub: 1,
   onUpdate(self) {
-    const p = self.progress
-    const W = sectionW()
-    const center = (W - 420) / 2
-    const amplitude = (W * 0.28) * (1 - p * 0.8)
-    const sineX = Math.sin(p * Math.PI * 2) * amplitude;
-    const x = center + sineX
-    const y = -320 + p * 400
-    canvas.style.left = x + 'px'
-    canvas.style.top  = y + 'px'
-  },
+  const p = self.progress
+  const W = sectionW()
+  const isMobile = W < 768
+  const center = (W - 420) / 2
+  const amplitude = (W * (isMobile ? 0.12 : 0.28)) * (1 - p * 0.8)
+  const sineX = Math.sin(p * Math.PI * 2) * amplitude
+  const x = center + sineX
+  const y = -320 + p * 400
+  canvas.style.left = x + 'px'
+  canvas.style.top  = y + 'px'
+  canvas.style.transform = isMobile ? 'scale(0.6)' : 'scale(1)'
+  canvas.style.transformOrigin = 'top left'
+},
 })
 
 // 2. Fade out the cube during the last part of its journey
@@ -659,6 +685,22 @@ onUnmounted(() => {
   <div class="rubik-text-bottom" id="rt-bottom">
     <h3>Transparency at every layer.</h3>
     <p>Full auditability and real-time reporting built into every transaction we process.</p>
+  </div>
+
+
+  <div class="rubik-mobile-cards">
+    <div class="rubik-card">
+      <h3>Move capital across borders without the friction.</h3>
+      <p>Real-time settlement rails connecting institutions across 120+ countries seamlessly.</p>
+    </div>
+    <div class="rubik-card">
+      <h3>Compliance built in, not bolted on.</h3>
+      <p>Adaptive regulatory layers that evolve with global standards, automatically.</p>
+    </div>
+    <div class="rubik-card">
+      <h3>Transparency at every layer.</h3>
+      <p>Full auditability and real-time reporting built into every transaction we process.</p>
+    </div>
   </div>
 </section>
 
@@ -1459,5 +1501,122 @@ text-align: center;
 @keyframes gleFloat {
   from { transform: translateY(0); }
   to   { transform: translateY(-28px); }
+}
+
+@media (max-width: 768px) {
+  /* Hero */
+  #hero { height: 220vh; padding-bottom: 20vh; }
+  .hero-content { top: 15vh; gap: 1.5rem; }
+  #hero-title { font-size: clamp(2.2rem, 14vw, 5rem); }
+
+  /* Numbers */
+  .numbers-screen { width: 98vw; padding: 2.5rem 1rem 1.5rem; min-height: 320px; }
+  .nl-mid .number-item { font-size: clamp(3rem, 10vw, 6rem); }
+
+  /* Spiral */
+  .spiral-content { padding: 3rem 1.5rem; max-width: 92vw; gap: 2.5rem; }
+  .spiral-para p { font-size: 1rem; }
+
+  /* Big text */
+  #bigtext-section { padding: 4rem 6vw; min-height: 50vh; }
+  #bigtext-section h2 { font-size: clamp(1.5rem, 7vw, 2.8rem); }
+  #bigtext-section .desc { font-size: 1rem; }
+
+  /* Rubik */
+  #rubik-section { min-height: 160vh; }
+  .rubik-text-left, .rubik-text-right, .rubik-text-bottom { display: none; }
+
+  /* Scene / character */
+  .scene-wrapper { height: 80vh; }
+  .scene-gle-bg span { font-size: clamp(3rem, 12vw, 6rem); }
+  .gle-row { gap: 1rem; }
+
+  /* FAQ */
+  #faq-section { padding: 4rem 5vw; margin-bottom: 8vh; }
+  .faq-header { font-size: clamp(1.6rem, 7vw, 2.5rem); margin-bottom: 2rem; }
+  .faq-item { padding: 1.1rem 1.2rem; }
+  .faq-q { font-size: 0.92rem; }
+
+  /* Footer */
+  #footer {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding: 3rem 5vw 2.5rem;
+    margin-top: 0;
+    clip-path: none !important;
+    opacity: 1 !important;
+  }
+  .footer-bottom-links { position: relative; bottom: auto; right: auto; margin-top: 1.5rem; }
+  .footer-form { flex-direction: column; }
+  .footer-submit { width: 100%; min-height: 52px; }
+
+  /* GLE section */
+  #gle-section { min-height: 40vh; }
+  .gle-word { font-size: clamp(3rem, 10vw, 6rem); }
+}
+
+@media (max-width: 480px) {
+  #hero-title { font-size: clamp(2rem, 16vw, 3.5rem); letter-spacing: 0.05em; }
+  .hero-btns { flex-direction: column; gap: 0.5rem; border-radius: 20px; padding: 8px; }
+  .btn-start, .btn-login { width: 100%; text-align: center; border-radius: 14px; }
+  .numbers-screen { min-height: 260px; }
+  #faq-section { padding: 3rem 4vw; }
+  .scene-wrapper { height: 65vh; }
+  .scene-gle-bg { display: none; }
+}
+/* Mobile rubik cards */
+.rubik-mobile-cards {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Hide desktop rubik entirely */
+  .rubik-wrap, #rubik-canvas { display: none; }
+  .rubik-text-left, .rubik-text-right, .rubik-text-bottom { display: none; }
+  #rubik-section { min-height: unset; overflow: visible; padding: 4rem 5vw; }
+
+  /* Show mobile cards */
+  .rubik-mobile-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    width: 100%;
+  }
+  .rubik-card {
+    border: 1px solid #1f1f1f;
+    border-radius: 14px;
+    padding: 1.6rem 1.4rem;
+    background: rgba(255,255,255,0.02);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.5s ease, transform 0.5s ease, border-color 0.2s;
+  }
+  .rubik-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .rubik-card:hover {
+    border-color: rgba(0,255,136,0.25);
+  }
+  .rubik-card h3 {
+    font-family: 'Urbanist', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #fff;
+    margin-bottom: 0.6rem;
+  }
+  .rubik-card p {
+    color: #6b7280;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  /* Footer — remove top margin on mobile */
+  #footer {
+    margin-top: 0 !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+  }
 }
 </style>

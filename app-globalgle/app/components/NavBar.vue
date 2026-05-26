@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue'
 const isDark       = ref(true)
 const logoSrc      = ref('/logo1.jpg')
 const isAnimating  = ref(false)
+const menuOpen = ref(false)
 
 const toggleTheme = () => {
   if (isAnimating.value) return
@@ -86,7 +87,20 @@ onMounted(() => {
       </button>
 
       <button class="nav-contact-btn">Contact</button>
-    </div>
+      <button class="hamburger" @click="menuOpen = !menuOpen" :class="{ open: menuOpen }" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+<!-- Mobile drawer -->
+<Transition name="drawer">
+  <div v-if="menuOpen" class="mobile-drawer" @click="menuOpen = false">
+    <a href="#" class="drawer-link">Work</a>
+    <a href="#" class="drawer-link">About</a>
+    <a href="#" class="drawer-link">Services</a>
+    <a href="#" class="drawer-link">Portfolio</a>
+  </div>
+</Transition>
 
   </nav>
 </template>
@@ -305,12 +319,21 @@ onMounted(() => {
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  #navbar { width: calc(100% - 2rem); padding: 0 0.75rem 0 0.5rem; }
-  .nav-brand { display: none; }
-  .nav-link  { font-size: 0.78rem; padding: 0.35rem 0.6rem; }
+  #navbar {
+    width: calc(100% - 2rem);
+    padding: 0 0.75rem 0 0.5rem;
+    grid-template-columns: auto 1fr auto;  /* logo | spacer | right */
+  }
+  .nav-center { display: none; }  /* hide all center links on mobile */
+  .nav-brand  { display: none; }
   .logo-wrap, .nav-logo { width: 36px; height: 36px; }
-  .theme-btn { width: 32px; height: 32px; }
+  .theme-btn  { width: 32px; height: 32px; }
   .theme-icon { width: 14px; height: 14px; }
+  .nav-contact-btn {
+    font-size: 0.72rem;
+    padding: 0.45rem 1rem;
+    letter-spacing: 0.08em;
+  }
 }
 </style>
 
@@ -359,4 +382,78 @@ onMounted(() => {
   box-shadow: 0 0 16px rgba(0,140,75,0.2) !important;
 }
 [data-theme="light"] .theme-icon { color: rgba(0,0,0,0.72) !important; }
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.hamburger span {
+  display: block;
+  width: 16px;
+  height: 1.5px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 2px;
+  transition: transform 0.3s, opacity 0.3s;
+}
+.hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; }
+.hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+.mobile-drawer {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 2rem);
+  background: rgba(0,0,0,0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  z-index: 99;
+}
+.drawer-link {
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 0.85rem 1.2rem;
+  border-radius: 12px;
+  transition: background 0.2s, color 0.2s;
+}
+.drawer-link:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.drawer-enter-active, .drawer-leave-active { transition: opacity 0.2s, transform 0.2s; }
+.drawer-enter-from, .drawer-leave-to { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+
+@media (max-width: 768px) {
+  .hamburger { display: flex; }
+}
+[data-theme="light"] .hamburger {
+  border-color: rgba(0,0,0,0.15) !important;
+  background: rgba(0,0,0,0.05) !important;
+}
+[data-theme="light"] .hamburger span { background: rgba(0,0,0,0.7) !important; }
+[data-theme="light"] .mobile-drawer {
+  background: rgba(255,255,255,0.95) !important;
+  border-color: rgba(0,0,0,0.1) !important;
+}
+[data-theme="light"] .drawer-link { color: rgba(0,0,0,0.7) !important; }
+[data-theme="light"] .drawer-link:hover { background: rgba(0,0,0,0.06) !important; color: #000 !important; }
 </style>
