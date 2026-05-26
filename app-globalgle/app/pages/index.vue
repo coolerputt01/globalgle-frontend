@@ -61,38 +61,71 @@ onMounted(async () => {
 }
   })
 
-  gsap.to('#hero-title', { opacity: 1, scale: 1, duration: 1.4, ease: 'power3.out', delay: 0.4 })
-  gsap.to('.hero-btns', { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.1 })
+// ─── HERO LETTERS — scatter around globe then converge on scroll ────────────
+const letters = document.querySelectorAll('.hero-letter')
+const count = letters.length
 
-  // ─── G SECTION ─────────────────────────────────────────────────────────────
-  const gTl = gsap.timeline({ paused: true })
-  gTl.fromTo('#big-g',
-    { opacity: 0, scale: 0.4, y: 80 },
-    { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: 'back.out(2)' }, 0)
-  gTl.to('#big-g', { y: -120, scale: 1.6, duration: 0.35, ease: 'power2.inOut' }, 0.4)
-  gTl.fromTo('#circle-text-svg',
-    { opacity: 0 },
-    { opacity: 1, duration: 0.45, ease: 'power2.out' }, 0.55)
+// Scatter positions — arranged loosely around where the globe sits
+const scatterPositions = [
+  { x: -120, y:  -80 },  // G
+  { x:   80, y: -100 },  // l
+  { x: -140, y:   20 },  // o
+  { x:  110, y:  -40 },  // b
+  { x:  -80, y:   90 },  // a
+  { x:  130, y:   70 },  // l
+  { x:  -30, y: 20 },  // G
+  { x:   50, y:  110 },  // L
+  { x:  100, y:  -90 },  // E
+]
 
-  // CHANGE 4: Use the taller hero scroll range to drive the G animation,
-  // giving the G section full play time while hero fades
-  ScrollTrigger.create({
-    trigger: '#hero',
-    start: 'top top',
-    end: 'bottom top',
-    scrub: 1.2,
-    onUpdate(self) { gTl.progress(self.progress) },
+// Set initial scattered positions
+letters.forEach((el, i) => {
+  const pos = scatterPositions[i]
+  gsap.set(el, {
+    x: pos.x,
+    y: pos.y,
+    opacity: 0,
+    rotation: (Math.random() - 0.5) * 40,
   })
+})
 
-  ScrollTrigger.create({
-    trigger: '#numbers-section',
-    start: 'top bottom',
-    end: 'top top',
-    scrub: 1,
-    onUpdate(self) { gsap.set('#g-section', { opacity: 1 - self.progress }) },
+// Fade letters in scattered
+gsap.to(letters, {
+  opacity: 1,
+  duration: 1.2,
+  stagger: 0.08,
+  ease: 'power2.out',
+  delay: 0.3,
+})
+
+// On scroll — letters converge to their natural position in the word
+ScrollTrigger.create({
+  trigger: '#hero',
+  start: 'top top',
+  end: '15%% top',
+  scrub: 0.4,
+  onUpdate(self) {
+    const p = self.progress
+    letters.forEach((el, i) => {
+  const pos = scatterPositions[i]
+  gsap.set(el, {
+    x: pos.x * (1 - p),
+    y: pos.y * (1 - p) + p * 120,   // drifts down 120px as letters converge
+    rotation: (pos.x / 10) * (1 - p),
   })
+})
+    // Also fade out the whole title as user scrolls past
+    const fadeOut = Math.max(0, 1 - (p - 0.6) / 0.4)
+    gsap.set('#hero-title', { opacity: p > 0.6 ? fadeOut : 1 })
+  },
+})
 
-  document.getElementById('circle-text-svg').style.animation = 'spinCircle 22s linear infinite'
+// Hero buttons still animate in
+gsap.to('.hero-btns', { opacity: 1, duration: 1, ease: 'power2.out', delay: 1.1 })
+
+// ─── REMOVE G SECTION triggers — delete these two ScrollTrigger.create blocks:
+// the gTl timeline, the hero scrub for gTl.progress, and the numbers-section opacity one
+
 
 // ─── NUMBERS ───────────────────────────────────────────────────────────────
 const numberItems = gsap.utils.toArray('.number-item')
@@ -539,22 +572,18 @@ onUnmounted(() => {
           <button class="btn-start">Get Started</button>
           <button class="btn-login">Login</button>
         </div>
-        <h1 id="hero-title">GlobalGLE</h1>
+        <h1 id="hero-title">
+  <span class="hero-letter" data-index="0">G</span>
+  <span class="hero-letter" data-index="1">l</span>
+  <span class="hero-letter" data-index="2">o</span>
+  <span class="hero-letter" data-index="3">b</span>
+  <span class="hero-letter" data-index="4">a</span>
+  <span class="hero-letter" data-index="5">l</span>
+  <span class="hero-letter" data-index="6">G</span>
+  <span class="hero-letter" data-index="7">L</span>
+  <span class="hero-letter" data-index="8">E</span>
+</h1>
       </div>
-    </section>
-
-    <!-- G SECTION: CHANGE 4 — taller so animation has full room to breathe -->
-    <section id="g-section">
-      <div id="big-g">G</div>
-      <svg id="circle-text-svg" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <path id="circle-path" d="M250,250 m-190,0 a190,190 0 1,1 380,0 a190,190 0 1,1 -380,0" />
-        </defs>
-        <text font-family="Urbanist,sans-serif" font-size="28" font-weight="700"
-              fill="rgba(255,255,255,0.8)" letter-spacing="12">
-          <textPath href="#circle-path">GLOBALGLE · GLOBALGLE · GLOBALGLE ·</textPath>
-        </text>
-      </svg>
     </section>
 
     <!-- NUMBERS: CHANGE 3 — wrapped in screen/box container -->
@@ -635,10 +664,10 @@ onUnmounted(() => {
 
 <div class="scene-wrapper">
   <div class="scene-gle-bg" aria-hidden="true">
-    <span>GLE</span>
-    <span>GLE</span>
-    <span>GLE</span>
-  </div>
+  <div class="gle-row"><span>GLE</span><span>GLE</span><span>GLE</span></div>
+  <div class="gle-row"><span>GLE</span><span>GLE</span><span>GLE</span></div>
+  <div class="gle-row"><span>GLE</span><span>GLE</span><span>GLE</span></div>
+</div>
   <ClientOnly>
     <Scene />
   </ClientOnly>
@@ -648,7 +677,7 @@ onUnmounted(() => {
     <!-- FAQ -->
     <section id="faq-section">
       <p class="faq-label" id="faq-label">Questions</p>
-      <h2 class="faq-header" id="faq-head">What this actually does.</h2>
+      <h2 class="faq-header" id="faq-head">What this <em>actually</em> does.</h2>
       <div id="faq-list">
         <div class="faq-item">
           <div class="faq-q">How does GlobalGle process cross-border payments? <span>+</span></div>
@@ -843,7 +872,7 @@ html { scroll-behavior: auto; }
   position: relative;
   width: 100vw;
   /* CHANGE 4: taller hero gives the G animation more room */
-  height: 260vh;
+  height: 180vh;
   overflow: hidden;
   padding-bottom: 40vh;
   display: flex;
@@ -868,9 +897,20 @@ html { scroll-behavior: auto; }
   font-size: clamp(3rem, 10vw, 9rem);
   font-weight: 800;
   letter-spacing: 0.1em;
-  opacity: 0;
-  transform: scale(0.6);
+  opacity: 1;          /* remove opacity:0 — letters handle their own */
+  transform: none;     /* remove scale */
   color: #fff;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-letter {
+  display: inline-block;
+  position: relative;
+  will-change: transform, opacity;
+  opacity: 0;
 }
 /* ── Outer glass pill container ───────────────────────────────────────────── */
 .hero-btns {
@@ -1114,7 +1154,6 @@ html { scroll-behavior: auto; }
   width: 100vw; min-height: 80vh; background: #000;
   display: flex; flex-direction: column; justify-content: center;
   padding: 6rem 10vw; position: relative; z-index: 2;
-  margin-top: 5vh;
 }
 #bigtext-section h2 {
   font-family: 'Urbanist', sans-serif; font-size: clamp(2rem, 6vw, 4rem);
@@ -1203,13 +1242,45 @@ text-align: center;
 
 /* ── FAQ ─────────────────────────────────────────────────────────────────── */
 #faq-section { width: 100vw; min-height: 80vh; background: #000; padding: 6rem 10vw; position: relative; z-index: 2; margin-bottom: 20vh;}
-.faq-label { font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: #00ff88; opacity: 0; }
-.faq-header { font-family: 'Urbanist', sans-serif; font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; margin: 1rem 0 3rem; opacity: 0; max-width: 700px; }
-.faq-item { border-top: 1px solid #1a1a1a; padding: 1.5rem 0; opacity: 0; }
-.faq-item:last-child { border-bottom: 1px solid #1a1a1a; }
-.faq-q { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 1.05rem; font-weight: 500; gap: 1rem; }
-.faq-q span { color: #4b5563; font-size: 1.3rem; line-height: 1; transition: transform 0.3s; }
-.faq-a { max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s; color: #6b7280; font-size: 0.95rem; line-height: 1.7; }
+.faq-label { 
+  font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: #00ff88; opacity: 0;
+  display: block; text-align: center; width: 100%;
+}
+.faq-header { 
+  font-family: 'Urbanist', sans-serif; font-size: clamp(2rem, 5vw, 4rem); font-weight: 800; 
+  margin: 1rem auto 3rem; opacity: 0; max-width: 700px; text-align: center;
+}
+.faq-item { 
+  border: 1px solid #1f1f1f; 
+  border-radius: 14px;
+  padding: 1.5rem 1.8rem; 
+  opacity: 0;
+  margin-bottom: 0.75rem;
+  background: rgba(255,255,255,0.02);
+  transition: border-color 0.2s, background 0.2s;
+}
+.faq-item:hover {
+  border-color: rgba(0,255,136,0.25);
+  background: rgba(0,255,136,0.03);
+}
+.faq-item:last-child { border-bottom: 1px solid #1f1f1f; }
+.faq-item.open {
+  border-color: rgba(0,255,136,0.35);
+  background: rgba(0,255,136,0.04);
+}
+.faq-q { 
+  display: flex; align-items: center; justify-content: space-between; 
+  cursor: pointer; font-size: 1.05rem; font-weight: 500; gap: 1rem; 
+}
+.faq-q span { 
+  color: #4b5563; font-size: 1.3rem; line-height: 1; 
+  transition: transform 0.3s; flex-shrink: 0;
+}
+.faq-a { 
+  max-height: 0; overflow: hidden; 
+  transition: max-height 0.4s ease, padding 0.3s; 
+  color: #6b7280; font-size: 0.95rem; line-height: 1.7; 
+}
 .faq-item.open .faq-q span { transform: rotate(45deg); }
 .faq-item.open .faq-a { max-height: 200px; padding-top: 1rem; }
 
@@ -1345,25 +1416,46 @@ text-align: center;
 .scene-gle-bg {
   position: absolute;
   inset: 0;
+  top: 80vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  z-index: 0;
+  pointer-events: none;
+}
+.gle-row {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: clamp(1rem, 4vw, 4rem);
-  z-index: 0;
-  pointer-events: none;
 }
 .scene-gle-bg span {
   font-family: 'Urbanist', sans-serif;
-  font-size: clamp(4rem, 12vw, 11rem);
+  font-size: clamp(7rem, 7vw, 17rem);
   font-weight: 800;
   color: transparent;
-  -webkit-text-stroke: 1.5px rgba(0, 255, 136, 0.15);
+  -webkit-text-stroke: 1.5px rgba(0, 255, 136, 0.12);
   letter-spacing: 0.05em;
   animation: gleFloat 2s ease-in-out infinite alternate;
 }
-.scene-gle-bg span:nth-child(2) { animation-delay: 0.2s; }
-.scene-gle-bg span:nth-child(3) { animation-delay: 0.4s; }
-
+/* Stagger each span differently so rows feel alive */
+.gle-row:nth-child(1) span:nth-child(1) { animation-delay: 0s; }
+.gle-row:nth-child(1) span:nth-child(2) { animation-delay: 0.15s; }
+.gle-row:nth-child(1) span:nth-child(3) { animation-delay: 0.3s; }
+.gle-row:nth-child(2) span:nth-child(1) { animation-delay: 0.2s; }
+.gle-row:nth-child(2) span:nth-child(2) { animation-delay: 0.35s; }
+.gle-row:nth-child(2) span:nth-child(3) { animation-delay: 0.5s; }
+.gle-row:nth-child(3) span:nth-child(1) { animation-delay: 0.4s; }
+.gle-row:nth-child(3) span:nth-child(2) { animation-delay: 0.55s; }
+.gle-row:nth-child(3) span:nth-child(3) { animation-delay: 0.7s; }
+.gle-row:nth-child(4) span:nth-child(1) { animation-delay: 0.1s; }
+.gle-row:nth-child(4) span:nth-child(2) { animation-delay: 0.25s; }
+.gle-row:nth-child(4) span:nth-child(3) { animation-delay: 0.4s; }
+.gle-row:nth-child(5) span:nth-child(1) { animation-delay: 0.3s; }
+.gle-row:nth-child(5) span:nth-child(2) { animation-delay: 0.45s; }
+.gle-row:nth-child(5) span:nth-child(3) { animation-delay: 0.6s; }
 @keyframes gleFloat {
   from { transform: translateY(0); }
   to   { transform: translateY(-28px); }
