@@ -38,8 +38,13 @@
 [data-theme="light"] #gle-section,
 [data-theme="light"] #bigtext-section,
 [data-theme="light"] #rubik-section,
+[data-theme="light"] #spiral-section,
 [data-theme="light"] .scene-wrapper {
   background: #f4f6f8 !important;
+}
+
+[data-theme="light"] .spiral-para p {
+  color: #1f2937 !important;
 }
 
 /* Keep the numbers screen itself visually dark — it's a terminal display */

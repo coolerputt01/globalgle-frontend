@@ -53,7 +53,7 @@
   let headBone = null
   let screenLight = null
   let mouse = { x: 0, y: 0 }
-  const interpolation = { x: 0.1, y: 0.2, zoom: 0.05 }
+  const interpolation = { x: 0.18, y: 0.28, zoom: 0.05 }
 
 let targetCameraZ = 24.7
   const scene = new THREE.Scene()
