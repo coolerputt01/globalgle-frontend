@@ -426,7 +426,7 @@ ScrollTrigger.create({
   const amplitude = (W * (isMobile ? 0.12 : 0.28)) * (1 - p * 0.8)
   const sineX = Math.sin(p * Math.PI * 2) * amplitude
   const x = center + sineX
-  const y = -320 + p * 400
+  const y = -320 + p * 700
   canvas.style.left = x + 'px'
   canvas.style.top  = y + 'px'
   canvas.style.transform = isMobile ? 'scale(0.6)' : 'scale(1)'
@@ -437,8 +437,8 @@ ScrollTrigger.create({
 // 2. Fade out the cube during the last part of its journey
 ScrollTrigger.create({
   trigger: '#rubik-section',
-  start: '60% bottom',
-  end: 'bottom top',
+  start: '90% bottom',
+  end: 'bottom 90%',
   scrub: 1,
   onUpdate(self) {
     // Starts fading when scroll is beyond 60% of the section
@@ -449,8 +449,8 @@ ScrollTrigger.create({
 
 ScrollTrigger.create({
   trigger: '#rubik-section',
-  start: '33% 60%',
-  end: '40% 40%',
+  start: '60% 60%',
+  end: '70% 40%',
   scrub: 1,
   onUpdate(self) {
     gsap.set('#rt-left', { opacity: 1 - self.progress })
