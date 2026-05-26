@@ -192,9 +192,102 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
       screenLight = character.getObjectByName('screenlight') || null
   
       if (gltf.animations?.length) {
-        mixer = new THREE.AnimationMixer(character)
-        mixer.clipAction(gltf.animations[0]).play()
+  mixer = new THREE.AnimationMixer(character)
+
+  // ── Intro animation — plays once then clamps ──────────────────────────
+  const introClip = gltf.animations.find(c => c.name === 'introAnimation')
+  if (introClip) {
+    const introAction = mixer.clipAction(introClip)
+    introAction.setLoop(THREE.LoopOnce, 1)
+    introAction.clampWhenFinished = true
+    introAction.play()
+  }
+
+  // ── Typing key animations ─────────────────────────────────────────────
+  const keyClips = ['key1', 'key2', 'key5', 'key6']
+  keyClips.forEach(name => {
+    const clip = THREE.AnimationClip.findByName(gltf.animations, name)
+    if (clip) {
+      const action = mixer.clipAction(clip)
+      action.play()
+      action.timeScale = 1.2
+    }
+  })
+
+  // ── Typing bone animation ─────────────────────────────────────────────
+  const typingBoneNames = [
+    'indexFinger1_R','indexFinger2_R','indexFinger3_R',
+    'middleFinger1_R','middleFinger2_R','middleFinger3_R',
+    'indexFinger1_L','indexFinger2_L','indexFinger3_L',
+    'middleFinger1_L','middleFinger2_L','middleFinger3_L',
+    'hand_R','hand_L',
+  ]
+  const typingClip = THREE.AnimationClip.findByName(gltf.animations, 'typing')
+  if (typingClip) {
+    const filteredTracks = typingClip.tracks.filter(track =>
+      typingBoneNames.some(bone => track.name.includes(bone))
+    )
+    const filteredClip = new THREE.AnimationClip('typing_filtered', typingClip.duration, filteredTracks)
+    const typingAction = mixer.clipAction(filteredClip)
+    typingAction.enabled = true
+    typingAction.play()
+    typingAction.timeScale = 1.2
+  }
+
+  // ── Start intro + blink after lights turn on ──────────────────────────
+  setTimeout(() => {
+    if (introClip) {
+      mixer.clipAction(introClip).reset().play()
+    }
+    setTimeout(() => {
+      const blinkClip = gltf.animations.find(c => c.name === 'Blink')
+      if (blinkClip) {
+        mixer.clipAction(blinkClip).play().fadeIn(0.5)
       }
+    }, 2500)
+  }, 2500)
+
+  // ── Eyebrow hover on mouse enter/leave ────────────────────────────────
+  const eyebrowBoneNames = [
+    'browInnerUp_L','browInnerUp_R',
+    'browDown_L','browDown_R',
+    'browOuterUp_L','browOuterUp_R',
+  ]
+  const browClip = THREE.AnimationClip.findByName(gltf.animations, 'browup')
+  if (browClip) {
+    const filteredTracks = browClip.tracks.filter(track =>
+      eyebrowBoneNames.some(bone => track.name.includes(bone))
+    )
+    const filteredBrowClip = new THREE.AnimationClip('browup_filtered', browClip.duration, filteredTracks)
+    const browAction = mixer.clipAction(filteredBrowClip)
+    browAction.setLoop(THREE.LoopOnce, 1)
+    browAction.clampWhenFinished = true
+    browAction.enabled = true
+
+    let isHovering = false
+    const onEnter = () => {
+      if (!isHovering) {
+        isHovering = true
+        browAction.reset()
+        browAction.enabled = true
+        browAction.setEffectiveWeight(4)
+        browAction.fadeIn(0.5).play()
+      }
+    }
+    const onLeave = () => {
+      if (isHovering) {
+        isHovering = false
+        browAction.fadeOut(0.6)
+      }
+    }
+    canvasDiv.value.addEventListener('mouseenter', onEnter)
+    canvasDiv.value.addEventListener('mouseleave', onLeave)
+    cleanupFns.push(() => {
+      canvasDiv.value?.removeEventListener('mouseenter', onEnter)
+      canvasDiv.value?.removeEventListener('mouseleave', onLeave)
+    })
+  }
+}
   
       URL.revokeObjectURL(blobUrl)
       dracoLoader.dispose()
