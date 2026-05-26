@@ -275,7 +275,7 @@ onMounted(() => {
   padding: 0.5rem 1.4rem;
   border-radius: 50px;
   border: 1.5px solid rgba(0,255,136,0.82);
-  background: rgba(0,22,13,0.72);
+  background: rgba(0,80,40,0.88);
   color: #fff;
   font-family: 'Urbanist', sans-serif;
   font-size: 0.8rem;
@@ -309,7 +309,7 @@ onMounted(() => {
 }
 .nav-contact-btn:hover {
   transform: scale(1.04);
-  background: rgba(0,32,18,0.78);
+  background: rgba(0,100,50,0.95);
   border-color: #00ff88;
   box-shadow:
     inset 0 1px 0 rgba(0,255,136,0.26),

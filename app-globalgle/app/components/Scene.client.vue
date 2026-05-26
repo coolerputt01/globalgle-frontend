@@ -115,8 +115,8 @@ let targetCameraZ = 24.7
     // ── Camera ──────────────────────────────────────────────────────────────────
     const isMobile = w < 768
 camera = new THREE.PerspectiveCamera(45, w/h, 0.1, 1000)
-camera.position.set(isMobile ? 0 : 2, 13.5, isMobile ? 32 : 27)
-camera.zoom = isMobile ? 1.0 : 1.4
+camera.position.set(isMobile ? 0 : 2, 11, isMobile ? 32 : 34)
+camera.zoom = isMobile ? 1.0 : 1.0
     camera.updateProjectionMatrix()
   
     // ── Lighting ─────────────────────────────────────────────────────────────────
@@ -193,13 +193,18 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
       if (gltf.animations?.length) {
   mixer = new THREE.AnimationMixer(character)
 
-  // ── Intro animation — plays once then clamps ──────────────────────────
+  // ── Intro animation — plays once then fades out ───────────────────────
   const introClip = gltf.animations.find(c => c.name === 'introAnimation')
+  let introAction = null
   if (introClip) {
-    const introAction = mixer.clipAction(introClip)
+    introAction = mixer.clipAction(introClip)
     introAction.setLoop(THREE.LoopOnce, 1)
     introAction.clampWhenFinished = true
     introAction.play()
+    // Fade it out once it finishes so the typing animation takes full effect
+    mixer.addEventListener('finished', (e) => {
+      if (e.action === introAction) introAction.fadeOut(1.2)
+    })
   }
 
   // ── Typing key animations ─────────────────────────────────────────────
@@ -208,6 +213,7 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
     const clip = THREE.AnimationClip.findByName(gltf.animations, name)
     if (clip) {
       const action = mixer.clipAction(clip)
+      action.setLoop(THREE.LoopRepeat, Infinity)
       action.play()
       action.timeScale = 1.2
     }
@@ -226,25 +232,25 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
     const filteredTracks = typingClip.tracks.filter(track =>
       typingBoneNames.some(bone => track.name.includes(bone))
     )
-    const filteredClip = new THREE.AnimationClip('typing_filtered', typingClip.duration, filteredTracks)
-    const typingAction = mixer.clipAction(filteredClip)
+    // Fall back to full clip if bone name filter yields nothing
+    const clip = filteredTracks.length > 0
+      ? new THREE.AnimationClip('typing_filtered', typingClip.duration, filteredTracks)
+      : typingClip
+    const typingAction = mixer.clipAction(clip)
+    typingAction.setLoop(THREE.LoopRepeat, Infinity)
+    typingAction.setEffectiveWeight(1)
     typingAction.enabled = true
     typingAction.play()
     typingAction.timeScale = 1.2
   }
 
-  // ── Start intro + blink after lights turn on ──────────────────────────
+  // ── Blink once intro has settled ─────────────────────────────────────
   setTimeout(() => {
-    if (introClip) {
-      mixer.clipAction(introClip).reset().play()
+    const blinkClip = gltf.animations.find(c => c.name === 'Blink')
+    if (blinkClip) {
+      mixer.clipAction(blinkClip).play().fadeIn(0.5)
     }
-    setTimeout(() => {
-      const blinkClip = gltf.animations.find(c => c.name === 'Blink')
-      if (blinkClip) {
-        mixer.clipAction(blinkClip).play().fadeIn(0.5)
-      }
-    }, 2500)
-  }, 2500)
+  }, 5000)
 
   // ── Eyebrow hover on mouse enter/leave ────────────────────────────────
   const eyebrowBoneNames = [
@@ -324,13 +330,13 @@ const blobUrl = URL.createObjectURL(new Blob([decrypted]));
     // ── Render loop ──────────────────────────────────────────────────────────────
     function animate() {
       animationId = requestAnimationFrame(animate)
+      const delta = clock.getDelta()
+      if (mixer) mixer.update(delta)
       if (headBone) {
         headBone.rotation.y = THREE.MathUtils.lerp(headBone.rotation.y, mouse.x * 0.4, interpolation.x)
         headBone.rotation.x = THREE.MathUtils.lerp(headBone.rotation.x, mouse.y * 0.2, interpolation.y)
         light.setPointLight(screenLight)
       }
-      const delta = clock.getDelta()
-      if (mixer) mixer.update(delta)
       renderer.render(scene, camera)
     }
     animate()

@@ -1016,17 +1016,17 @@ html { scroll-behavior: auto; }
   letter-spacing: 0.05em;
   cursor: pointer;
   color: #fff;
-  background: rgba(0,22,13,0.62);
+  background: rgba(0,80,40,0.85);
   border: 1.5px solid rgba(0,255,136,0.86);
   box-shadow:
-    inset 0 1px 0 rgba(0,255,136,0.22),
+    inset 0 1px 0 rgba(0,255,136,0.25),
     inset 0 -1px 0 rgba(0,0,0,0.3),
     0 0 18px rgba(0,255,136,0.2);
   transition: background 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.2s;
 }
 .btn-start:hover {
   transform: scale(1.03);
-  background: rgba(0,32,18,0.68);
+  background: rgba(0,100,50,0.92);
   border-color: #00ff88;
   box-shadow:
     inset 0 1px 0 rgba(0,255,136,0.3),
@@ -1105,7 +1105,7 @@ html { scroll-behavior: auto; }
   overflow: hidden;
   position: relative;
   z-index: 2;
-  margin-top: 0; 
+  margin-top: 0;
 }
 
 .numbers-screen {
