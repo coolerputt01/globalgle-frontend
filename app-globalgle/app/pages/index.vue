@@ -1300,7 +1300,27 @@ text-align: center;
 
 /* ── FAQ ─────────────────────────────────────────────────────────────────── */
 #faq-section { width: 100vw; min-height: 80vh; background: #000; padding: 6rem 10vw; position: relative; z-index: 2; margin-bottom: 20vh;}
-.faq-label { 
+#faq-section {
+  position: relative;  /* already set, just confirming */
+}
+
+#faq-section::before {
+  content: 'FAQ';
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Urbanist', sans-serif;
+  font-size: clamp(20rem, 22vw, 28rem);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.045);
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.045);
+  letter-spacing: 0.15em;
+  pointer-events: none;
+  z-index: 0;
+  white-space: nowrap;
+  user-select: none;
+}.faq-label { 
   font-size: 0.8rem; letter-spacing: 0.2em; text-transform: uppercase; color: #00ff88; opacity: 0;
   display: block; text-align: center; width: 100%;
 }
